@@ -77,8 +77,7 @@ keybind = ctrl+zero=reset_font_size
 window-padding-x = 18
 window-padding-y = 16
 cursor-opacity = 0.9
-selection-invert-fg-bg = false
-bold-is-bright = true
+bold-color = bright
 font-feature = calt
 font-feature = liga
 # Smooth cursor trail in the cursor's colour (~/.config/ghostty/shaders)
