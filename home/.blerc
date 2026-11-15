@@ -64,3 +64,9 @@ ble-bind -m selection -f 'delete'      xmilon/delete-selection
 ble-bind -m selection -f 'C-c'         xmilon/copy-selection
 ble-bind -m selection -f 'C-x'         xmilon/cut-selection
 ble-bind -m selection -f '__default__' xmilon/selection-default
+
+# Keyboard selection uses the same soft tint as Ghostty's mouse selection.
+bleopt term_true_colors=semicolon
+ble-face region='bg=#4b5266'
+ble-face region_target='bg=#4b5266'
+ble-face region_insert='bg=#4b5266'
