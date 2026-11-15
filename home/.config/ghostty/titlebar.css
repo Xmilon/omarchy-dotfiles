@@ -1,7 +1,17 @@
 /* Ghostty title bar: slim and glassy, Inter title, round coloured window buttons.
    Buttons show their symbol only when you hover them. */
 
-headerbar {
+@define-color headerbar_bg_color alpha(#0a0a0c, 0.55);
+@define-color headerbar_backdrop_color alpha(#0a0a0c, 0.40);
+@define-color headerbar_shade_color transparent;
+:root {
+  --headerbar-bg-color: alpha(#0a0a0c, 0.55);
+  --headerbar-backdrop-color: alpha(#0a0a0c, 0.40);
+  --headerbar-shade-color: transparent;
+}
+
+.window headerbar,
+window headerbar {
   min-height: 30px;
   padding: 0 8px;
   background: alpha(#0a0a0c, 0.55);
@@ -9,11 +19,13 @@ headerbar {
   border-bottom: 1px solid alpha(#ffffff, 0.06);
 }
 
-headerbar:backdrop {
+.window headerbar:backdrop,
+window headerbar:backdrop {
   background: alpha(#0a0a0c, 0.40);
 }
 
-headerbar .title {
+.window headerbar .title,
+window headerbar .title {
   font-family: "Inter Variable", Inter, sans-serif;
   font-weight: 600;
   font-size: 12px;
@@ -21,16 +33,17 @@ headerbar .title {
   color: alpha(#ffffff, 0.82);
 }
 
-headerbar:backdrop .title {
+.window headerbar:backdrop .title,
+window headerbar:backdrop .title {
   color: alpha(#ffffff, 0.45);
 }
 
-windowcontrols {
+.window windowcontrols {
   margin: 0 2px;
   border-spacing: 8px;
 }
 
-windowcontrols > button {
+.window windowcontrols > button {
   min-width: 14px;
   min-height: 14px;
   padding: 0;
@@ -40,7 +53,7 @@ windowcontrols > button {
   background: none;
 }
 
-windowcontrols > button > image {
+.window windowcontrols > button > image {
   min-width: 14px;
   min-height: 14px;
   padding: 0;
@@ -52,24 +65,24 @@ windowcontrols > button > image {
   transition: color 120ms ease-out, filter 120ms ease-out;
 }
 
-windowcontrols > button.close    > image { background-color: #ff5f57; }
-windowcontrols > button.minimize > image { background-color: #febc2e; }
-windowcontrols > button.maximize > image { background-color: #28c840; }
+.window windowcontrols > button.close    > image { background-color: #ff5f57; }
+.window windowcontrols > button.minimize > image { background-color: #febc2e; }
+.window windowcontrols > button.maximize > image { background-color: #28c840; }
 
 /* Show the symbols when the pointer is over the buttons. */
-windowcontrols:hover > button > image {
+.window windowcontrols:hover > button > image {
   color: alpha(#000000, 0.6);
 }
 
-windowcontrols > button:hover > image {
+.window windowcontrols > button:hover > image {
   filter: brightness(1.12);
 }
 
-windowcontrols > button:active > image {
+.window windowcontrols > button:active > image {
   filter: brightness(0.88);
 }
 
 /* Unfocused window: grey dots, like macOS. */
-windowcontrols:backdrop > button > image {
+.window windowcontrols:backdrop > button > image {
   background-color: alpha(#ffffff, 0.18);
 }

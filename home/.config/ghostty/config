@@ -107,8 +107,7 @@ window-decoration = auto
 window-title-font-family = Inter Variable
 gtk-custom-css = ~/.config/ghostty/titlebar.css
 
-# --- Soft, see-through selection ---
-# Text keeps its own colour; the highlight is a muted tint. With
-# background-opacity-cells on, the tint is as translucent as the window.
-selection-foreground = cell-foreground
-selection-background = #4b5266
+# Settings that must beat the theme go in overrides.conf. Ghostty reads
+# config-file includes after this file and in order, so the theme comes first
+# and overrides.conf wins.
+config-file = ?"~/.config/ghostty/overrides.conf"

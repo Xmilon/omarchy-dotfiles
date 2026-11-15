@@ -3,6 +3,7 @@
 .config/ghostty/config
 .config/ghostty/shaders
 .config/ghostty/titlebar.css
+.config/ghostty/overrides.conf
 .config/hypr/autostart.lua
 .config/hypr/bindings.lua
 .config/hypr/looknfeel.lua
