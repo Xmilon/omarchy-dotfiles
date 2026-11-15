@@ -24,59 +24,18 @@ BarWidget {
   function close() { popupOpen = false }
   property real maxLabelWidth: 180
 
-  // Audio visualizer. cava prints one frame per line: 48 values 0-1000 split
-  // by ";" (cava/bar.conf). One cava process feeds both the bar and the popup,
-  // and only runs while something is playing.
-  readonly property int vizSources: 48
+  // Audio visualizer. cava runs in this plugin's service (Service.qml), which
+  // outlives bar rebuilds; the widget only draws what the service reports.
   readonly property int vizBars: 12            // bars drawn in the bar itself
-  readonly property int vizGroup: vizSources / vizBars
+  readonly property var levels: mediaService && mediaService.vizLevels ? mediaService.vizLevels : []        // 48 values, 0..1
+  readonly property var barLevels: mediaService && mediaService.vizBarLevels ? mediaService.vizBarLevels : [] // 12 values, 0..1
   // Shift the bars later to line up with what you hear, in milliseconds.
   // Set "vizDelayMs" on this widget's entry in ~/.config/omarchy/shell.json.
-  readonly property int vizDelayMs: Math.max(0, Math.min(1000, Number(settings && settings.vizDelayMs) || 0))
-  property var levels: []                      // 48 values, 0..1
-  property var barLevels: []                   // 12 values, 0..1 (loudest of each group)
-  property var frameQueue: []
-  readonly property bool vizActive: isPlaying && visible && !(bar && bar.barHidden) && !Style.reduceMotion
-
-  function applyFrame(values) {
-    var grouped = []
-    for (var g = 0; g < vizBars; g++) {
-      var peak = 0
-      for (var k = 0; k < vizGroup; k++) peak = Math.max(peak, values[g * vizGroup + k] || 0)
-      grouped.push(peak)
-    }
-    levels = values
-    barLevels = grouped
-  }
-
-  // Moving the widget rebuilds it; stop the old cava so it can't hang around
-  // feeding a widget that no longer exists.
-  Component.onDestruction: cava.running = false
-
-  Process {
-    id: cava
-    command: ["stdbuf", "-o0", "cava", "-p", String(Qt.resolvedUrl("cava/bar.conf")).replace(/^file:\/\//, "")]
-    running: root.vizActive
-    onRunningChanged: if (!running) { root.frameQueue = []; root.applyFrame([]) }
-    stdout: SplitParser {
-      onRead: function(line) {
-        var parts = line.split(";")
-        var values = []
-        for (var i = 0; i < root.vizSources; i++) {
-          var v = parseInt(parts[i], 10)
-          values.push(isNaN(v) ? 0 : Math.max(0, Math.min(1000, v)) / 1000)
-        }
-        if (root.vizDelayMs <= 0) { root.applyFrame(values); return }
-        // Hold frames back by vizDelayMs so the bars hit with the sound.
-        var now = Date.now()
-        var queue = root.frameQueue
-        queue.push({ t: now, v: values })
-        var ready = null
-        while (queue.length > 0 && queue[0].t <= now - root.vizDelayMs) ready = queue.shift().v
-        if (queue.length > 120) queue.splice(0, queue.length - 120)
-        if (ready) root.applyFrame(ready)
-      }
-    }
+  Binding {
+    target: root.mediaService
+    when: !!root.mediaService
+    property: "vizDelayMs"
+    value: Math.max(0, Math.min(1000, Number(root.settings && root.settings.vizDelayMs) || 0))
   }
 
   visible: hasMedia

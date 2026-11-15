@@ -35,6 +35,58 @@ Item {
   readonly property string artUrl: activePlayer && activePlayer.trackArtUrl ? activePlayer.trackArtUrl : ""
   readonly property string identity: activePlayer ? (activePlayer.identity || activePlayer.desktopEntry || "") : ""
 
+  // ---------------------------------------------------------- visualizer
+  // cava lives here, in the long-lived service, not in the bar widget: bar
+  // widgets get rebuilt whenever the bar layout changes, and a cava owned by a
+  // widget would be left feeding a copy that's no longer on screen.
+  // Output: 48 values 0-1000 per line (cava/bar.conf), normalised to 0..1.
+  readonly property int vizSources: 48
+  readonly property int vizBars: 12
+  readonly property int vizGroup: vizSources / vizBars
+  property int vizDelayMs: 0                  // set by the widget from its settings
+  property var vizLevels: []                  // 48 values for the popup wave
+  property var vizBarLevels: []               // 12 values (loudest of each group) for the bar
+  property var vizQueue: []
+  readonly property bool vizRunning: !!activePlayer && !!activePlayer.isPlaying && !Style.reduceMotion
+
+  function vizApply(values) {
+    var grouped = []
+    for (var g = 0; g < vizBars; g++) {
+      var peak = 0
+      for (var k = 0; k < vizGroup; k++) peak = Math.max(peak, values[g * vizGroup + k] || 0)
+      grouped.push(peak)
+    }
+    vizLevels = values
+    vizBarLevels = grouped
+  }
+
+  Process {
+    id: cava
+    command: ["stdbuf", "-o0", "cava", "-p", String(Qt.resolvedUrl("cava/bar.conf")).replace(/^file:\/\//, "")]
+    running: root.vizRunning
+    onRunningChanged: if (!running) { root.vizQueue = []; root.vizApply([]) }
+    stdout: SplitParser {
+      onRead: function(line) {
+        var parts = line.split(";")
+        var values = []
+        for (var i = 0; i < root.vizSources; i++) {
+          var v = parseInt(parts[i], 10)
+          values.push(isNaN(v) ? 0 : Math.max(0, Math.min(1000, v)) / 1000)
+        }
+        if (root.vizDelayMs <= 0) { root.vizApply(values); return }
+        // Hold frames back by vizDelayMs so the bars hit with the sound.
+        var now = Date.now()
+        var queue = root.vizQueue
+        queue.push({ t: now, v: values })
+        var ready = null
+        while (queue.length > 0 && queue[0].t <= now - root.vizDelayMs) ready = queue.shift().v
+        if (queue.length > 120) queue.splice(0, queue.length - 120)
+        if (ready) root.vizApply(ready)
+      }
+    }
+  }
+  Component.onDestruction: cava.running = false
+
   function isProxyPlayer(player) {
     return MediaModel.isProxyPlayer(player)
   }
