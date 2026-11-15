@@ -135,3 +135,15 @@ function ble/widget/xmilon/paste-over-selection {   # pasting replaces a selecti
 }
 ble-bind -f 'C-v' xmilon/paste-clipboard
 ble-bind -m selection -f 'C-v' xmilon/paste-over-selection
+
+# Ctrl+A selects the whole command line (like a text editor); then Backspace,
+# Ctrl+X, Ctrl+C or typing act on all of it. Home still jumps to the start.
+function ble/widget/xmilon/select-all {
+  ((${#_ble_edit_str})) || return 0
+  _ble_edit_mark=0
+  _ble_edit_ind=${#_ble_edit_str}
+  _ble_edit_mark_active=S
+  [[ $_ble_decode_keymap == selection ]] || ble/decode/keymap/push selection
+}
+ble-bind -f 'C-a' xmilon/select-all
+ble-bind -m selection -f 'C-a' xmilon/select-all
