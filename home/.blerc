@@ -65,20 +65,27 @@ ble-bind -m selection -f 'C-c'         xmilon/copy-selection
 ble-bind -m selection -f 'C-x'         xmilon/cut-selection
 ble-bind -m selection -f '__default__' xmilon/selection-default
 
-# Keyboard selection uses the same soft tint as Ghostty's mouse selection.
+# Keyboard selection: ble.sh's slate blue (colour 60) with white text; Ghostty's
+# mouse selection uses the same colours (~/.config/ghostty/overrides.conf).
 bleopt term_true_colors=semicolon
-ble-face region='bg=#4b5266'
-ble-face region_target='bg=#4b5266'
-ble-face region_insert='bg=#4b5266'
+ble-face region='bg=60,fg=white'
+ble-face region_target='bg=60,fg=white'
+ble-face region_insert='bg=60,fg=white'
 
 # --- Mouse selection editing ---
-# When text is selected with the mouse, Ghostty copies it and sends one of these
+# When text is selected with the mouse, Ghostty sends one of these
 # private keys (see ~/.config/ghostty/config): Ctrl+F12 = delete it,
 # Ctrl+Shift+F12 = cut it. If the selected text is in the command line it is
 # removed there; otherwise Backspace just deletes a character as usual.
 function ble/widget/xmilon/mouse-selection-edit {
   local mode=$1 sel str before beg end
-  sel=$(wl-paste --no-newline 2>/dev/null) || sel=
+  # Delete reads the primary selection (what is selected right now); cut reads
+  # the clipboard, which Ghostty has just filled for the cut.
+  if [[ $mode == cut ]]; then
+    sel=$(wl-paste --no-newline 2>/dev/null) || sel=
+  else
+    sel=$(wl-paste --primary --no-newline 2>/dev/null) || sel=
+  fi
   str=$_ble_edit_str
   if [[ $sel && $str == *"$sel"* ]]; then
     before=${str%"$sel"*}               # text before the last occurrence
@@ -87,9 +94,44 @@ function ble/widget/xmilon/mouse-selection-edit {
     ble/widget/.delete-range "$beg" "$end"
     _ble_edit_ind=$beg
     _ble_edit_mark_active=
-  elif [[ $mode == delete ]]; then
-    ble/widget/delete-backward-char
+    # For delete, Ghostty also passes the Backspace/Delete through (that is what
+    # clears its highlight); skip that one keypress so no extra character goes.
+    [[ $mode == delete ]] && _xmilon_skip_key=$EPOCHREALTIME
   fi
+  # Selection not in the command line: do nothing here; the Backspace/Delete
+  # that follows works as normal.
 }
+# Backspace/Delete, unless it is the pass-through from a mouse-selection delete
+# that just happened (within 0.3 s).
+function ble/widget/xmilon/maybe-skip {
+  if [[ ${_xmilon_skip_key-} ]]; then
+    local now=${EPOCHREALTIME/[.,]/} then=${_xmilon_skip_key/[.,]/}
+    _xmilon_skip_key=
+    (( now - then < 300000 )) && return 0
+  fi
+  ble/widget/"$@"
+}
+ble-bind -f 'DEL'    'xmilon/maybe-skip delete-region-or delete-backward-char'
+ble-bind -f 'C-?'    'xmilon/maybe-skip delete-region-or delete-backward-char'
+ble-bind -f 'C-h'    'xmilon/maybe-skip delete-region-or delete-backward-char'
+ble-bind -f 'BS'     'xmilon/maybe-skip delete-region-or delete-backward-char'
+ble-bind -f 'delete' 'xmilon/maybe-skip delete-region-or delete-forward-char'
+
 ble-bind -f 'C-f12'   'xmilon/mouse-selection-edit delete'
 ble-bind -f 'C-S-f12' 'xmilon/mouse-selection-edit cut'
+
+# Ctrl+V pastes the clipboard at the command line. It lives here, in the shell,
+# not in Ghostty, so programs like nano (next page) and vim (block select)
+# keep their own Ctrl+V.
+function ble/widget/xmilon/paste-clipboard {
+  local text
+  text=$(wl-paste --no-newline 2>/dev/null) || return 0
+  ble/widget/insert-string "$text"
+}
+function ble/widget/xmilon/paste-over-selection {   # pasting replaces a selection
+  ble/widget/delete-region
+  ble/decode/keymap/pop
+  ble/widget/xmilon/paste-clipboard
+}
+ble-bind -f 'C-v' xmilon/paste-clipboard
+ble-bind -m selection -f 'C-v' xmilon/paste-over-selection

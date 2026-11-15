@@ -51,7 +51,7 @@ background-opacity-cells = true
 background-blur = 30
 
 # Behavior
-copy-on-select = clipboard
+copy-on-select = primary
 mouse-hide-while-typing = true
 scrollback-limit = 100000000
 clipboard-paste-protection = true
@@ -88,7 +88,8 @@ custom-shader-animation = true
 # Ctrl+C copies when text is selected with the mouse; with nothing selected it
 # still reaches the shell, so Ctrl+C keeps stopping programs.
 keybind = performable:ctrl+c=copy_to_clipboard
-keybind = ctrl+v=paste_from_clipboard
+# Ctrl+V pastes in the shell itself (ble.sh, ~/.blerc), so nano and vim keep
+# their own Ctrl+V. Ctrl+Shift+V pastes in any program.
 
 # Let the shell (ble.sh) have the selection keys: Shift+arrows, Shift+Home/End
 # and Ctrl+Shift+arrows select text on the command line instead of Ghostty
@@ -112,12 +113,18 @@ window-decoration = none
 config-file = ?"~/.config/ghostty/overrides.conf"
 
 # --- Edit the command line with a mouse selection ---
-# Only when text is selected with the mouse (performable): copy it, then send a
-# private key that ble.sh turns into "remove this text from the command line"
-# (see ~/.blerc). With no selection these keys work as normal.
-keybind = performable:backspace=copy_to_clipboard
+# Selecting text only fills the primary selection (copy-on-select = primary),
+# never the clipboard. With a mouse selection, Backspace/Delete send a private
+# key that ble.sh turns into "remove the selected text from the command line"
+# (it reads the primary selection; see ~/.blerc). scroll_to_selection is just
+# the trigger: it only fires when there is a selection, and copies nothing.
+# Ctrl+X cuts: it copies to the clipboard first, on purpose.
+# With no selection these keys work as normal.
+# unconsumed: the key also reaches the shell as a normal keypress, which makes
+# Ghostty clear the leftover highlight; ble.sh skips that one extra keypress.
+keybind = performable:unconsumed:backspace=scroll_to_selection
 keybind = chain=text:\x1b[24;5~
-keybind = performable:delete=copy_to_clipboard
+keybind = performable:unconsumed:delete=scroll_to_selection
 keybind = chain=text:\x1b[24;5~
 keybind = performable:ctrl+x=copy_to_clipboard
 keybind = chain=text:\x1b[24;6~
