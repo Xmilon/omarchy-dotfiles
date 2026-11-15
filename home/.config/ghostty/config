@@ -102,10 +102,9 @@ keybind = shift+end=unbind
 keybind = ctrl+shift+arrow_left=unbind
 keybind = ctrl+shift+arrow_right=unbind
 
-# --- Title bar: Inter font, slim glassy bar, round coloured window buttons ---
-window-decoration = client
-window-title-font-family = Inter Variable
-gtk-custom-css = ~/.config/ghostty/titlebar.css
+# No title bar of Ghostty's own: floating windows get the shared Hyprland
+# title bar (hyprbars, styled in ~/.config/hypr/looknfeel.lua).
+window-decoration = none
 
 # Settings that must beat the theme go in overrides.conf. Ghostty reads
 # config-file includes after this file and in order, so the theme comes first

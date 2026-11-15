@@ -69,3 +69,61 @@ hl.config({
     blur = { enabled = true, size = 8, passes = 3, noise = 0.02, brightness = 0.85 },
   },
 })
+
+-- Shared window title bar (floating windows): a slim glassy bar with the title
+-- in Inter, centred, and round red / yellow / green buttons whose symbols show
+-- on hover. Omarchy sets this bar up (hyprbars, in workspace-modes.lua) every
+-- time a workspace starts floating, with a monospace font and plain − □ ×
+-- buttons, so instead of setting options once we adjust its settings as it
+-- applies them.
+local TITLEBAR = {
+  bar_height = 28,
+  bar_color = "rgba(0d0d11d9)",
+  bar_color_inactive = "rgba(0d0d11a6)",
+  bar_blur = true,
+  bar_text_font = "Inter Variable",
+  bar_text_size = 12,
+  bar_text_weight = "semibold",
+  bar_text_align = "center",
+  bar_padding = 12,
+  bar_button_padding = 8,
+  button_rounding = 7,
+  icon_on_hover = true,
+  inactive_button_color = "rgba(ffffff2e)",
+  col = { text = "rgba(ffffffd1)" },
+}
+-- Omarchy's button icons → colour of the round button that replaces it.
+local TITLEBAR_BUTTONS = {
+  ["×"] = "rgb(ff5f57)", -- close
+  ["□"] = "rgb(28c840)", -- maximize
+  ["−"] = "rgb(febc2e)", -- minimize to the dock
+}
+
+local omarchy_config = hl.config
+hl.config = function(tbl)
+  local bars = type(tbl) == "table" and type(tbl.plugin) == "table" and tbl.plugin.hyprbars
+  if type(bars) == "table" and bars.enabled then
+    for key, value in pairs(TITLEBAR) do bars[key] = value end
+  end
+  return omarchy_config(tbl)
+end
+
+local omarchy_plugin_load = hl.plugin.load
+hl.plugin.load = function(...)
+  local result = omarchy_plugin_load(...)
+  local bars = hl.plugin.hyprbars
+  if bars and bars.add_button and not bars.__xmilon_styled then
+    local add_button = bars.add_button
+    bars.add_button = function(button)
+      local colour = type(button) == "table" and TITLEBAR_BUTTONS[button.icon]
+      if colour then
+        button.bg_color = colour
+        button.fg_color = "rgba(00000099)"
+        button.size = 14
+      end
+      return add_button(button)
+    end
+    bars.__xmilon_styled = true
+  end
+  return result
+end

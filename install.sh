@@ -107,8 +107,6 @@ if [[ -s $REPO/packages/current-theme.txt ]]; then
   omarchy theme set "$(head -1 "$REPO/packages/current-theme.txt")" >/dev/null 2>&1 || warn "Set your theme with: omarchy theme set <name>"
 fi
 gsettings set org.gnome.desktop.interface icon-theme 'Conflux' || true
-# Title bar buttons: maximise and close (Hyprland can't minimise from a button; Super+M does).
-gsettings set org.gnome.desktop.wm.preferences button-layout ':maximize,close' || true
 hyprctl reload >/dev/null 2>&1 || true
 omarchy restart shell >/dev/null 2>&1 || true
 omarchy restart terminal >/dev/null 2>&1 || true
