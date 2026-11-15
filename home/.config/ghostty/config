@@ -53,7 +53,7 @@ background-blur = 30
 # Behavior
 copy-on-select = primary
 mouse-hide-while-typing = true
-scrollback-limit = 100000000
+scrollback-limit = 20000000
 clipboard-paste-protection = true
 cursor-style-blink = true
 adjust-cell-height = 10%
@@ -80,9 +80,11 @@ cursor-opacity = 0.9
 bold-color = bright
 font-feature = calt
 font-feature = liga
-# Smooth cursor trail in the cursor's colour (~/.config/ghostty/shaders)
-custom-shader = ~/.config/ghostty/shaders/cursor_trail.glsl
-custom-shader-animation = true
+# Glass selection: frosted fill, thin outline, end bars (~/.config/ghostty/shaders).
+# Animation stays off: the shader only runs when the screen changes, so an idle
+# window costs ~0% CPU (the old animated cursor trail cost ~26% constantly).
+custom-shader = ~/.config/ghostty/shaders/selection_glass.glsl
+custom-shader-animation = false
 
 # --- Editor-style clipboard keys (no Shift needed) ---
 # Ctrl+C copies when text is selected with the mouse; with nothing selected it
