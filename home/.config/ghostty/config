@@ -110,3 +110,14 @@ window-decoration = none
 # config-file includes after this file and in order, so the theme comes first
 # and overrides.conf wins.
 config-file = ?"~/.config/ghostty/overrides.conf"
+
+# --- Edit the command line with a mouse selection ---
+# Only when text is selected with the mouse (performable): copy it, then send a
+# private key that ble.sh turns into "remove this text from the command line"
+# (see ~/.blerc). With no selection these keys work as normal.
+keybind = performable:backspace=copy_to_clipboard
+keybind = chain=text:\x1b[24;5~
+keybind = performable:delete=copy_to_clipboard
+keybind = chain=text:\x1b[24;5~
+keybind = performable:ctrl+x=copy_to_clipboard
+keybind = chain=text:\x1b[24;6~

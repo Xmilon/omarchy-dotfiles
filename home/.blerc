@@ -70,3 +70,26 @@ bleopt term_true_colors=semicolon
 ble-face region='bg=#4b5266'
 ble-face region_target='bg=#4b5266'
 ble-face region_insert='bg=#4b5266'
+
+# --- Mouse selection editing ---
+# When text is selected with the mouse, Ghostty copies it and sends one of these
+# private keys (see ~/.config/ghostty/config): Ctrl+F12 = delete it,
+# Ctrl+Shift+F12 = cut it. If the selected text is in the command line it is
+# removed there; otherwise Backspace just deletes a character as usual.
+function ble/widget/xmilon/mouse-selection-edit {
+  local mode=$1 sel str before beg end
+  sel=$(wl-paste --no-newline 2>/dev/null) || sel=
+  str=$_ble_edit_str
+  if [[ $sel && $str == *"$sel"* ]]; then
+    before=${str%"$sel"*}               # text before the last occurrence
+    beg=${#before}
+    end=$((beg + ${#sel}))
+    ble/widget/.delete-range "$beg" "$end"
+    _ble_edit_ind=$beg
+    _ble_edit_mark_active=
+  elif [[ $mode == delete ]]; then
+    ble/widget/delete-backward-char
+  fi
+}
+ble-bind -f 'C-f12'   'xmilon/mouse-selection-edit delete'
+ble-bind -f 'C-S-f12' 'xmilon/mouse-selection-edit cut'
