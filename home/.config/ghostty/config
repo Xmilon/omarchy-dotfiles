@@ -103,7 +103,7 @@ keybind = ctrl+shift+arrow_left=unbind
 keybind = ctrl+shift+arrow_right=unbind
 
 # --- Title bar: Inter font, slim glassy bar, round coloured window buttons ---
-window-decoration = auto
+window-decoration = client
 window-title-font-family = Inter Variable
 gtk-custom-css = ~/.config/ghostty/titlebar.css
 
