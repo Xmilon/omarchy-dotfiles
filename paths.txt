@@ -1,0 +1,19 @@
+# Files and folders (relative to $HOME) that make up this setup.
+# collect.sh copies them into home/, install.sh copies them back.
+.config/ghostty/config
+.config/ghostty/shaders
+.config/hypr/autostart.lua
+.config/hypr/bindings.lua
+.config/hypr/looknfeel.lua
+.config/hypr/monitors.lua
+.config/omarchy/shell.json
+.config/omarchy/plugins/xmilon.media
+.config/omarchy/plugins/xmilon.notes
+.config/omarchy/plugins/xmilon.sysinfo
+.config/omarchy/plugins/xmilon.indicators
+.config/omarchy/bar/modules
+.config/omarchy/hooks/theme-set.d/conflux-icons.sh
+.config/gtk-4.0/gtk.css
+.config/fastfetch
+.blerc
+.bashrc

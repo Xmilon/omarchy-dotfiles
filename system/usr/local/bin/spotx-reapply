@@ -1,0 +1,5 @@
+#!/bin/bash
+# Re-applies SpotX after pacman installs or upgrades Spotify (called by /etc/pacman.d/hooks/spotx.hook).
+# Uses the reviewed copy in /usr/local/share/spotx/spotx.sh; replace that file to update SpotX.
+bash /usr/local/share/spotx/spotx.sh --noninteractive --nocolor </dev/null 2>&1 | grep -E "✔|Error|Warning|version" || true
+exit 0

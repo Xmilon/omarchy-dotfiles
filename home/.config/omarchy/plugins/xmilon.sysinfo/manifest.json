@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "xmilon.sysinfo",
+  "name": "System Info",
+  "version": "1.0.0",
+  "author": "Xmilon",
+  "license": "MIT",
+  "description": "CPU, temperature and RAM in the bar, with a popup for GPU, disk, swap and uptime.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "System Info",
+    "description": "CPU, temperature and RAM, with a detail popup",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

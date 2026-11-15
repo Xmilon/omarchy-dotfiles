@@ -1,0 +1,12 @@
+# Official repo packages used by this setup
+cava
+papirus-icon-theme
+fastfetch
+wl-clipboard
+nautilus-python
+libnotify
+zenity
+fuse2
+python
+git
+gimp

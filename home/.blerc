@@ -1,0 +1,66 @@
+# ble.sh settings: IDE-like completion for bash
+
+# Ghost-text suggestion as you type (accept with Right arrow / End)
+bleopt complete_auto_complete=1
+bleopt complete_auto_delay=80
+
+# Popup menu with candidates while you type (like an IDE)
+bleopt complete_auto_menu=200
+bleopt complete_menu_style=align-nowrap
+bleopt complete_menu_complete=1       # Tab walks through the menu
+bleopt complete_menu_filter=1         # menu narrows as you keep typing
+bleopt complete_ambiguous=1
+
+# History shared between open terminals, and syntax highlighting is on by default
+bleopt history_share=1
+
+# Readable on a translucent, blurred terminal
+ble-face auto_complete='fg=244'
+
+# --- Plain command line: no syntax colours while typing ---
+bleopt highlight_syntax=
+bleopt highlight_filename=
+bleopt highlight_variable=
+
+# --- IDE-style selection on the command line ---
+# Shift+arrows (or Shift+Home/End, Ctrl+Shift+arrows for words) select text.
+# With a selection:  Backspace/Delete removes it,  Ctrl+C copies,  Ctrl+X cuts,
+# typing replaces it.  Copies and cuts go to the system clipboard (wl-copy),
+# so Ctrl+V pastes them anywhere.  Without a selection, Ctrl+C clears the line
+# as usual (and still stops a running program).
+function ble/widget/xmilon/to-clipboard {
+  [[ ${_ble_edit_kill_ring[0]+set} ]] || return 0
+  printf '%s' "${_ble_edit_kill_ring[0]}" | wl-copy 2>/dev/null
+}
+function ble/widget/xmilon/copy-selection {
+  ble/widget/copy-region
+  ble/widget/xmilon/to-clipboard
+  ble/decode/keymap/pop
+}
+function ble/widget/xmilon/cut-selection {
+  ble/widget/kill-region
+  ble/widget/xmilon/to-clipboard
+  ble/decode/keymap/pop
+}
+function ble/widget/xmilon/delete-selection {
+  ble/widget/delete-region
+  ble/decode/keymap/pop
+}
+function ble/widget/xmilon/selection-default {
+  # A plain character (no Ctrl/Alt) replaces the selection, like an editor.
+  local key=${KEYS[0]-0}
+  if ((key >= 32 && key != 127 && key < 0x110000)); then
+    ble/widget/delete-region
+    ble/decode/keymap/pop
+    ble/decode/widget/redispatch
+    return "$?"
+  fi
+  ble/widget/selection/exit-default
+}
+ble-bind -m selection -f 'BS'          xmilon/delete-selection
+ble-bind -m selection -f 'C-h'         xmilon/delete-selection
+ble-bind -m selection -f 'DEL'         xmilon/delete-selection
+ble-bind -m selection -f 'delete'      xmilon/delete-selection
+ble-bind -m selection -f 'C-c'         xmilon/copy-selection
+ble-bind -m selection -f 'C-x'         xmilon/cut-selection
+ble-bind -m selection -f '__default__' xmilon/selection-default

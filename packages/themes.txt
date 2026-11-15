@@ -1,0 +1,26 @@
+# Omarchy themes installed from git (URL per line). install.sh reinstalls them.
+https://github.com/errantProgrammer/omarchy-ado-theme.git
+https://github.com/tahfizhabib/omarchy-amberbyte-theme.git
+https://github.com/anuj-kosambi/omarchy-apexer-theme.git
+https://github.com/atif-1402/omarchy-apocalypse-theme.git
+https://github.com/leaflessbranch/omarchy-apollo-after-dark-theme.git
+https://github.com/bjarneo/omarchy-ash-theme.git
+https://github.com/AlxWolfenstein97/omarchy-asphalt-legends-theme.git
+https://github.com/NazzarenoGiannelli/omarchy-aura-dark-theme.git
+https://github.com/abhijeet-swami/omarchy-ayaka-theme.git
+https://github.com/ankur311sudo/black_arch.git
+https://github.com/rlind3r/omarchy-blackwall-theme.git
+https://github.com/TyRichards/omarchy-felix-theme.git
+https://github.com/baigsf/omarchy-gruvpink-theme.git
+https://github.com/archer-clawbot/omarchy-hermarchy-theme.git
+https://github.com/Binz120/holo-black.git
+https://github.com/HANCORE-linux/omarchy-moodpeak-theme.git
+https://github.com/ishansing/omarchy-neptune-theme.git
+https://github.com/tahadx/omarchy-noir-theme.git
+https://github.com/HalmyLyseas/omarchy-nujabes-theme.git
+https://github.com/brianblakely/omarchy-omaled-theme.git
+https://github.com/Haflier/omarchy-pathos-theme.git
+https://github.com/ITSZXY/pink-blood-omarchy-theme.git
+https://github.com/kamatealip/omarchy-red-monarch-theme.git
+https://github.com/NotProniss/reds-not-dead.git
+https://github.com/ankur311sudo/snow_black.git

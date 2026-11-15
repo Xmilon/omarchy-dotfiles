@@ -1,0 +1,160 @@
+{
+  "bar": {
+    "background": "glassy",
+    "layout": {
+      "center": [
+        {
+          "alwaysShow": true,
+          "id": "xmilon.indicators"
+        },
+        {
+          "id": "divider1",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "id": "xmilon.media"
+        },
+        {
+          "id": "divider2",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "format": "dddd HH:mm",
+          "formatAlt": "d MMMM 'W'ww yyyy",
+          "id": "omarchy.clock",
+          "verticalFormat": "HH\n—\nmm"
+        },
+        {
+          "id": "divider3",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "cities": [
+            {
+              "name": "Rome",
+              "zone": "Europe/Rome"
+            },
+            {
+              "name": "Dubai",
+              "zone": "Asia/Dubai"
+            },
+            {
+              "name": "Tokyo",
+              "zone": "Asia/Tokyo"
+            },
+            {
+              "name": "Los Angeles",
+              "zone": "America/Los_Angeles"
+            },
+            {
+              "name": "New York",
+              "zone": "America/New_York"
+            }
+          ],
+          "id": "omarchy.elsewhen"
+        },
+        {
+          "id": "divider4",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "divider5",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "id": "xmilon.notes"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
+      "centerBegin": [],
+      "centerEnd": [],
+      "left": [
+        {
+          "id": "omarchy.menu"
+        },
+        {
+          "id": "omarchy.workspaces"
+        }
+      ],
+      "right": [
+        {
+          "id": "xmilon.sysinfo"
+        },
+        {
+          "id": "divider6",
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
+          "id": "omarchy.tray"
+        },
+        {
+          "id": "omarchy.keyboard-layout"
+        },
+        {
+          "id": "omarchy.agents"
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "omarchy.monitor"
+        },
+        {
+          "id": "omarchy.power"
+        }
+      ],
+      "tray": [
+        {
+          "id": "superwhisper.panel"
+        }
+      ]
+    },
+    "position": "top"
+  },
+  "cloneSourceRestores": [
+    "xmilon.media"
+  ],
+  "disabledPlugins": [
+    "omarchy.media"
+  ],
+  "dock": {
+    "pinned": [
+      "org.gnome.Nautilus",
+      "com.mitchellh.ghostty",
+      "brave-browser",
+      "chatgpt",
+      "com.anthropic.Claude",
+      "idea",
+      "pycharm",
+      "com.microsoft.VSCode",
+      "spotify",
+      "Excalidraw",
+      "Modrinth App",
+      "ai.storyteller.artcraft-launcher"
+    ],
+    "position": "bottom"
+  },
+  "idle": {
+    "lock": 300,
+    "screensaver": 150
+  },
+  "plugins": [],
+  "version": 1
+}

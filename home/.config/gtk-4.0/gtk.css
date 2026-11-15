@@ -1,0 +1,40 @@
+/* Files (Nautilus) rice: see-through panels over Hyprland blur, text stays sharp.
+   Only matches the Files window, so other GTK apps are untouched. */
+
+window.nautilus-window,
+window.nautilus-window .content-pane,
+window.nautilus-window headerbar,
+window.nautilus-window .view,
+window.nautilus-window gridview,
+window.nautilus-window columnview,
+window.nautilus-window listview {
+  background-color: alpha(#0b0b0d, 0.55);
+}
+
+window.nautilus-window .sidebar-pane,
+window.nautilus-window .navigation-sidebar {
+  background-color: alpha(#000000, 0.35);
+}
+
+/* Softer, rounder selection and hover */
+window.nautilus-window gridview > child,
+window.nautilus-window .navigation-sidebar > row {
+  border-radius: 10px;
+}
+
+window.nautilus-window gridview > child:hover,
+window.nautilus-window .navigation-sidebar > row:hover {
+  background-color: alpha(#ffffff, 0.07);
+}
+
+window.nautilus-window gridview > child:selected,
+window.nautilus-window .navigation-sidebar > row:selected {
+  background-color: alpha(#ffffff, 0.14);
+}
+
+/* Path bar and search as glassy pills */
+window.nautilus-window .path-bar-box,
+window.nautilus-window searchbar entry {
+  background-color: alpha(#ffffff, 0.06);
+  border-radius: 999px;
+}

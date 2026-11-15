@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = spotify
+
+[Action]
+Description = Re-applying SpotX patches to Spotify...
+When = PostTransaction
+Exec = /usr/local/bin/spotx-reapply

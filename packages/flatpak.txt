@@ -1,0 +1,3 @@
+# Flathub apps (user installs)
+org.gnome.World.Iotas
+moe.kopuz.kopuz

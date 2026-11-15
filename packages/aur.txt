@@ -1,0 +1,7 @@
+# AUR packages (installed with: omarchy pkg aur add <name>)
+nvibrant-bin
+hypruse
+modrinth-app-bin
+protonup-qt
+proton-ge-custom-bin
+lsfg-vk-git

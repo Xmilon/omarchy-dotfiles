@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "xmilon.notes",
+  "name": "Quick Notes",
+  "version": "1.0.0",
+  "author": "Xmilon",
+  "license": "MIT",
+  "description": "Quick notes in the bar: named pages that save as you type, with dates and pinning.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Quick Notes",
+    "description": "Named note pages that save as you type",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "centerEnd"
+  }
+}
