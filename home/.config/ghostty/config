@@ -61,8 +61,8 @@ adjust-cell-height = 10%
 # Tabs and splits (ctrl+shift keeps normal terminal shortcuts free)
 keybind = ctrl+shift+t=new_tab
 keybind = ctrl+shift+w=close_surface
-keybind = ctrl+shift+right=next_tab
-keybind = ctrl+shift+left=previous_tab
+keybind = ctrl+page_down=next_tab
+keybind = ctrl+page_up=previous_tab
 keybind = ctrl+shift+d=new_split:right
 keybind = ctrl+shift+e=new_split:down
 keybind = ctrl+shift+arrow_up=goto_split:up
@@ -76,7 +76,6 @@ keybind = ctrl+zero=reset_font_size
 # --- Rice ---
 window-padding-x = 18
 window-padding-y = 16
-window-decoration = none
 cursor-opacity = 0.9
 selection-invert-fg-bg = false
 bold-is-bright = true
@@ -91,3 +90,20 @@ custom-shader-animation = true
 # still reaches the shell, so Ctrl+C keeps stopping programs.
 keybind = performable:ctrl+c=copy_to_clipboard
 keybind = ctrl+v=paste_from_clipboard
+
+# Let the shell (ble.sh) have the selection keys: Shift+arrows, Shift+Home/End
+# and Ctrl+Shift+arrows select text on the command line instead of Ghostty
+# adjusting its mouse selection, scrolling, or switching tabs.
+keybind = shift+arrow_left=unbind
+keybind = shift+arrow_right=unbind
+keybind = shift+arrow_up=unbind
+keybind = shift+arrow_down=unbind
+keybind = shift+home=unbind
+keybind = shift+end=unbind
+keybind = ctrl+shift+arrow_left=unbind
+keybind = ctrl+shift+arrow_right=unbind
+
+# --- Title bar: Inter font, slim glassy bar, round coloured window buttons ---
+window-decoration = auto
+window-title-font-family = Inter Variable
+gtk-custom-css = ~/.config/ghostty/titlebar.css

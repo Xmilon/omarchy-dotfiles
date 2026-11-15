@@ -10,3 +10,4 @@ fuse2
 python
 git
 gimp
+inter-font

@@ -2,6 +2,7 @@
 # collect.sh copies them into home/, install.sh copies them back.
 .config/ghostty/config
 .config/ghostty/shaders
+.config/ghostty/titlebar.css
 .config/hypr/autostart.lua
 .config/hypr/bindings.lua
 .config/hypr/looknfeel.lua
