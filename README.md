@@ -31,14 +31,14 @@ To track a new file, add its path (relative to your home folder) to `paths.txt`.
 
 | Area | What |
 |---|---|
-| **Bar** (`.config/omarchy/shell.json`) | Centered middle group: indicators, music, clock, world clock, weather, notes, with thin dividers. System info on the right. |
+| **Bar** (`.config/omarchy/shell.json`) | Centered middle group: indicators, music, clock, world clock, weather, notes, clipboard, with thin dividers. System info on the right. Floating windows get a restyled title bar (Inter, round buttons; `hypr/looknfeel.lua`). |
 | **Music widget** (`plugins/xmilon.media`) | Left-click opens the popup, right-click play/pause. cava sound bars in the bar and a wave in the popup. `"vizDelayMs"` on its bar entry shifts the bars to match the sound. |
 | **Quick Notes** (`plugins/xmilon.notes`) | Named pages that save as you type, with dates and pinning; images, videos and files inline at the cursor (paste, drop or attach); Ctrl+click opens links. Pages live in `~/Notes/Quick/` (not in this repo). Super+Alt+N toggles it. |
 | **Clipboard** (`plugins/xmilon.clipboard`) | Bar icon for Omarchy's clipboard history: recent text and images, click to copy again; right-click opens the full manager (Super+Ctrl+V). |
 | **System Info** (`plugins/xmilon.sysinfo`) | CPU %, temperature and RAM in the bar; popup with GPU (nvidia-smi), VRAM, swap, disk, uptime. |
 | **Indicators** (`plugins/xmilon.indicators`) | Always visible; only open when hovered themselves, with a slide animation. |
-| **Ghostty** | Very translucent with blur, no title bar, cursor trail shader, Ctrl+C (copies when text is selected) / Ctrl+V without Shift. |
-| **Command line** (`.blerc`, ble.sh) | IDE-like completion, no syntax colours, Shift+arrow selection with Backspace / Ctrl+C / Ctrl+X / typing-replaces, synced with the clipboard. |
+| **Ghostty** | Very translucent with blur, no title bar of its own (floating windows use the shared bar below), no animated shaders (idle ~0% CPU), grey-blue selection that doesn't copy on select; with a mouse selection, Backspace/Delete/Ctrl+X edit the command line; Ctrl+C copies a selection. |
+| **Command line** (`.blerc`, ble.sh) | IDE-like completion, no syntax colours, Shift+arrow selection and Ctrl+A select-all with Backspace / Ctrl+C / Ctrl+X / typing-replaces; Ctrl+V pastes (in the shell only, so nano/vim keep theirs). |
 | **Files** (`.config/gtk-4.0/gtk.css`) | See-through panels over the blur, rounded hover and selection. |
 | **Hyprland** | Super+scroll switches workspaces without the 300 ms delay and slides; Super+middle-click opens a new empty workspace; 1080p@180 external monitor; GDK scale 1 (normal-size Steam); digital vibrance at login. |
 | **Icons** | Conflux, with Papirus-Dark as fallback; a theme hook keeps them after theme changes. |
