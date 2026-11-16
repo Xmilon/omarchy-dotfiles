@@ -51,13 +51,47 @@ def attachments(note_id):
         if not f.is_file() or f.name.startswith("."):
             continue
         mime = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
-        items.append({
-            "name": f.name,
-            "path": str(f),
-            "kind": mime.split("/")[0],      # image, video, audio, text, application
-            "size": f.stat().st_size,
-        })
+        items.append(describe(note_id, f, mime))
     return items
+
+
+def describe(note_id, f, mime=None):
+    """Attachment info for the editor. Paths are relative to ~/Notes/Quick and
+    URL-encoded, ready to drop into Markdown."""
+    mime = mime or mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+    rel = f"media/{note_id}/{f.name}"
+    thumb = f.parent / ".thumbs" / (f.name + ".jpg")
+    return {
+        "name": f.name,
+        "path": str(f),
+        "kind": mime.split("/")[0],          # image, video, audio, text, application
+        "mime": mime,
+        "size": f.stat().st_size,
+        "url": urllib.parse.quote(rel),
+        "thumb": urllib.parse.quote(f"media/{note_id}/.thumbs/{f.name}.jpg") if thumb.exists() else "",
+    }
+
+
+def make_thumb(f):
+    """Small preview for images (ImageMagick) and videos (a frame via ffmpeg)."""
+    mime = mimetypes.guess_type(f.name)[0] or ""
+    out = f.parent / ".thumbs" / (f.name + ".jpg")
+    out.parent.mkdir(exist_ok=True)
+    try:
+        if mime.startswith("image/") and shutil.which("magick"):
+            subprocess.run(["magick", str(f) + "[0]", "-auto-orient", "-thumbnail", "360x240>",
+                            "-background", "#202020", "-flatten", "-quality", "85", str(out)],
+                           check=True, capture_output=True, timeout=30)
+        elif mime.startswith("video/") and shutil.which("ffmpeg"):
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "1", "-i", str(f), "-frames:v", "1",
+                            "-vf", "scale='min(360,iw)':-2", str(out)],
+                           check=True, capture_output=True, timeout=30)
+            if not out.exists():                 # very short clip: take the first frame
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(f), "-frames:v", "1",
+                                "-vf", "scale='min(360,iw)':-2", str(out)],
+                               check=True, capture_output=True, timeout=30)
+    except (subprocess.SubprocessError, OSError):
+        pass
 
 
 def safe_name(name):
@@ -179,7 +213,8 @@ def attach(note_id, src):
     folder.mkdir(parents=True, exist_ok=True)
     dst = unique_path(folder, safe_name(src.name))
     shutil.copy2(src, dst)
-    return attachments(note_id)
+    make_thumb(dst)
+    return {"added": describe(note_id, dst), "attachments": attachments(note_id)}
 
 
 def paste_image(note_id):
@@ -196,7 +231,8 @@ def paste_image(note_id):
     ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif"}[image_type]
     dst = unique_path(folder, "pasted-" + time.strftime("%Y%m%d-%H%M%S") + ext)
     dst.write_bytes(data)
-    return attachments(note_id)
+    make_thumb(dst)
+    return {"added": describe(note_id, dst), "attachments": attachments(note_id)}
 
 
 def detach(note_id, name):
@@ -206,7 +242,10 @@ def detach(note_id, name):
     if target.parent != MEDIA_DIR / note_id or not target.is_file():
         raise ValueError("no such attachment")
     subprocess.run(["gio", "trash", "--", str(target)], check=True)
-    return attachments(note_id)
+    thumb = target.parent / ".thumbs" / (target.name + ".jpg")
+    if thumb.exists():
+        thumb.unlink()
+    return {"attachments": attachments(note_id)}
 
 
 def main(argv):

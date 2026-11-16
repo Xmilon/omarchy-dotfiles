@@ -36,6 +36,75 @@ Panel {
   signal noteLoaded()
   signal focusBody()
   signal pasteText()
+  signal insertMarkdown(string md)
+
+  // Notes folder; the editor resolves media links relative to it.
+  readonly property string notesDir: (Quickshell.env("QUICK_NOTES_DIR") || (Quickshell.env("HOME") + "/Notes/Quick"))
+  property bool loadingText: false
+
+  // Markdown for an attachment, placed inline at the cursor. Images and videos
+  // show their preview and link to the full file; other files are links.
+  function attachmentMarkdown(a) {
+    var label = String(a.name).replace(/[\[\]]/g, "")
+    if (a.thumb) {
+      var cap = a.kind === "video" ? "🎬 " + label : label
+      return "[![" + cap + "](" + a.thumb + ")](" + a.url + ")"
+    }
+    var icon = a.kind === "video" ? "🎬" : a.kind === "audio" ? "🎵"
+             : a.mime === "application/pdf" ? "📄" : a.kind === "image" ? "🖼" : "📎"
+    return "[" + icon + " " + label + "](" + a.url + ")"
+  }
+
+  // Link colour: the text colour with a hint of the theme accent. Qt's Markdown
+  // reader paints links in the GTK theme's bright blue, so for display each
+  // link becomes a small HTML link carrying this colour; saving turns them
+  // back into plain Markdown links.
+  readonly property color linkColor: Qt.tint(root.fg, Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.35))
+  function displayMarkdown(md) {
+    var c = "#" + [linkColor.r, linkColor.g, linkColor.b].map(function(v) {
+      var h = Math.round(v * 255).toString(16); return h.length < 2 ? "0" + h : h
+    }).join("")
+    function a(href, label) {
+      return '<a href="' + href.replace(/"/g, "%22") + '" style="color:' + c + '">' + label + '</a>'
+    }
+    // Leave code spans alone.
+    return String(md).split(/(`[^`]*`)/).map(function(part, i) {
+      if (i % 2 === 1) return part
+      return part
+        .replace(/(^|[^!\]])\[([^\]]+)\]\(([^)\s]+)\)/g, function(m, pre, label, href) { return pre + a(href, label) })
+        .replace(/<((?:https?|mailto):[^>\s]+)>/g, function(m, href) { return a(href, href) })
+        .replace(/(^|[\s(])((?:https?:\/\/|www\.)[^\s<>()"']+)/g, function(m, pre, url) {
+          return pre + a(url.indexOf("www.") === 0 ? "https://" + url : url, url)
+        })
+    }).join("")
+  }
+
+  // The full file behind an inline preview at (x, y): images show as one
+  // object character each, so count them up to the click and take that image
+  // from the Markdown. Previews live in .thumbs/ next to the original.
+  function imageAt(edit, x, y) {
+    var pos = edit.positionAt(x, y)
+    var hit = -1
+    for (var p = pos; p >= Math.max(0, pos - 1); p--) {
+      if (edit.getText(p, p + 1) === "\ufffc") { hit = p; break }
+    }
+    if (hit < 0) return ""
+    var index = (edit.getText(0, hit).match(/\ufffc/g) || []).length
+    var re = /!\[[^\]]*\]\(([^)\s]+)\)/g, m, i = 0
+    while ((m = re.exec(edit.text)) !== null) {
+      if (i === index) return m[1].replace(/\/\.thumbs\/(.+)\.jpg$/, "/$1")
+      i++
+    }
+    return ""
+  }
+
+  // Ctrl+click: open a link (relative ones are files in the notes folder).
+  function openLink(link) {
+    link = String(link)
+    if (link === "") return
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(link)) link = root.notesDir + "/" + decodeURIComponent(link)
+    Quickshell.execDetached(["xdg-open", link])
+  }
 
   // ------------------------------------------------------------- attachments
   // Files live in ~/Notes/Quick/media/<page id>/ (see notes.py).
@@ -97,7 +166,11 @@ Panel {
         try {
           var out = JSON.parse(text)
           if (out && out.error) root.status = out.error
-          else if (Array.isArray(out)) { root.setAttachments(out); root.status = "Saved" }
+          else if (out && Array.isArray(out.attachments)) {
+            root.setAttachments(out.attachments)
+            if (out.added) root.insertMarkdown(root.attachmentMarkdown(out.added))
+            root.status = "Saved"
+          }
         } catch (e) { root.status = "Couldn't attach" }
       }
     }
@@ -214,6 +287,12 @@ Panel {
           if (!Array.isArray(parsed)) return
           root.notes = parsed
           if (!root.currentId && parsed.length > 0 && !root.creatingNew) root.selectNote(parsed[0])
+          else if (root.currentId && !root.dirty && !saveTimer.running) {
+            // Pick up changes made to the open page outside the panel.
+            var fresh = parsed.filter(function(n) { return n.id === root.currentId })[0]
+            if (fresh && (fresh.body !== root.draftBody || fresh.title !== root.draftTitle)) root.selectNote(fresh)
+            else if (!fresh) root.selectNote(parsed.length > 0 ? parsed[0] : null)
+          }
         } catch (e) { root.status = "Couldn't read notes" }
       }
     }
@@ -307,10 +386,16 @@ Panel {
       Keys.onEscapePressed: root.close()
       property alias editor: bodyArea
 
-      Component.onCompleted: { titleField.text = root.draftTitle; bodyArea.text = root.draftBody }
+      function loadBody() {
+        root.loadingText = true
+        titleField.text = root.draftTitle
+        bodyArea.text = root.displayMarkdown(root.draftBody)
+        root.loadingText = false
+      }
+      Component.onCompleted: loadBody()
       Connections {
         target: root
-        function onNoteLoaded() { titleField.text = root.draftTitle; bodyArea.text = root.draftBody }
+        function onNoteLoaded() { body.loadBody() }
         function onFocusBody() { bodyArea.forceActiveFocus() }
       }
 
@@ -452,7 +537,7 @@ Panel {
             Button {
               iconText: "󰏢"
               foreground: root.fg
-              tooltipText: "Attach files (or drop them here, or paste an image)"
+              tooltipText: "Insert a file at the cursor (or drop files here, or paste an image)"
               enabled: root.currentId !== ""
               opacity: enabled ? 1 : 0.4
               onClicked: root.pickFiles()
@@ -511,18 +596,22 @@ Panel {
 
               TextArea {
                 id: bodyArea
-                textFormat: TextEdit.PlainText
+                // Markdown so images/videos show inline and links work.
+                textFormat: TextEdit.MarkdownText
+                baseUrl: "file://" + root.notesDir + "/"
                 wrapMode: TextEdit.Wrap
                 placeholderText: root.currentId || root.creatingNew ? "Write something…" : "Press New page (Ctrl+N) to start"
                 placeholderTextColor: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.35)
                 color: root.fg
                 selectionColor: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.4)
                 selectedTextColor: root.fg
-                font.family: Style.font.family
-                font.pixelSize: Style.font.subtitle
+                // A proportional font: Qt saves text set in a monospace font as
+                // Markdown code (`...`), which would wrap every note in backticks.
+                font.family: "Inter Variable"
+                font.pixelSize: Style.font.subtitle + 1
                 background: null
                 onTextChanged: {
-                  if (text === root.draftBody) return
+                  if (root.loadingText || text === root.draftBody) return
                   root.draftBody = text
                   if (!root.currentId && !root.creatingNew) {
                     // Typing with no page open starts one automatically.
@@ -543,99 +632,48 @@ Panel {
                 Connections {
                   target: root
                   function onPasteText() { bodyArea.paste() }
+                  function onInsertMarkdown(md) {
+                    var pos = bodyArea.cursorPosition
+                    bodyArea.insert(pos, md + " ")
+                    bodyArea.forceActiveFocus()
+                  }
+                }
+
+                // Pointer over a link shows a hand.
+                HoverHandler {
+                  cursorShape: bodyArea.hoveredLink !== "" ? Qt.PointingHandCursor : Qt.IBeamCursor
+                }
+
+                // Ctrl+click opens links: Markdown links, media, or a plain
+                // web address typed into the text.
+                TapHandler {
+                  acceptedModifiers: Qt.ControlModifier
+                  onTapped: function(point) {
+                    var link = bodyArea.linkAt(point.position.x, point.position.y)
+                    if (!link) link = root.imageAt(bodyArea, point.position.x, point.position.y)
+                    if (!link) {
+                      var pos = bodyArea.positionAt(point.position.x, point.position.y)
+                      var from = Math.max(0, pos - 300)
+                      var chunk = bodyArea.getText(from, Math.min(bodyArea.length, pos + 300))
+                      var re = /(https?:\/\/|www\.)[^\s<>()"']+/g, m
+                      while ((m = re.exec(chunk)) !== null) {
+                        if (from + m.index <= pos && pos <= from + m.index + m[0].length) {
+                          link = m[0].indexOf("www.") === 0 ? "https://" + m[0] : m[0]
+                          break
+                        }
+                      }
+                    }
+                    if (link) root.openLink(link)
+                  }
                 }
               }
             }
           }
 
-          // ---- attachments: image thumbnails and file chips
-          Flickable {
-            id: attachStrip
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.attachments.length > 0 ? Style.space(76) : 0
-            visible: root.attachments.length > 0
-            contentWidth: attachRow.width
-            contentHeight: height
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-
-            Row {
-              id: attachRow
-              height: parent.height
-              spacing: Style.space(6)
-
-              Repeater {
-                model: root.attachments
-
-                Rectangle {
-                  id: chip
-                  required property var modelData
-                  readonly property bool isImage: modelData.kind === "image"
-                  width: isImage ? height : Style.space(150)
-                  height: attachStrip.height
-                  radius: Style.space(8)
-                  color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, chipMouse.containsMouse ? 0.12 : 0.06)
-                  border.width: 1
-                  border.color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
-                  clip: true
-
-                  Image {
-                    visible: chip.isImage
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    source: chip.isImage ? "file://" + chip.modelData.path : ""
-                    sourceSize.width: 160
-                    sourceSize.height: 160
-                    asynchronous: true
-                    cache: false
-                    fillMode: Image.PreserveAspectCrop
-                  }
-
-                  Column {
-                    visible: !chip.isImage
-                    anchors.fill: parent
-                    anchors.margins: Style.space(8)
-                    spacing: Style.space(4)
-                    Text {
-                      textFormat: Text.PlainText
-                      text: chip.modelData.kind === "video" ? "󰕧" : chip.modelData.kind === "audio" ? "󰎆"
-                          : chip.modelData.kind === "text" ? "󰈙" : "󰈔"
-                      color: root.accent
-                      font.family: Style.font.family
-                      font.pixelSize: Style.font.heading
-                    }
-                    Text {
-                      width: parent.width
-                      textFormat: Text.PlainText
-                      text: chip.modelData.name
-                      color: root.fg
-                      font.family: Style.font.family
-                      font.pixelSize: Style.font.caption
-                      elide: Text.ElideMiddle
-                    }
-                  }
-
-                  MouseArea {
-                    id: chipMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    onClicked: function(mouse) {
-                      if (mouse.button === Qt.RightButton) root.detach(chip.modelData.name)
-                      else root.openAttachment(chip.modelData.path)
-                    }
-                    onEntered: if (root.bar) root.bar.showTooltip(chip, chip.modelData.name + "  ·  click to open, right-click to remove")
-                    onExited: if (root.bar) root.bar.hideTooltip(chip)
-                  }
-                }
-              }
-            }
-          }
         }
       }
 
-      // Drop files anywhere on the panel to attach them.
+      // Drop files anywhere on the panel: they are attached and placed at the cursor.
       DropArea {
         anchors.fill: parent
         onDropped: function(drop) {
