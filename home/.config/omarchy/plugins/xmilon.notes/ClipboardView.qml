@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Widgets
 import qs.Ui
 import qs.Commons
 import qs.Commons as Commons
@@ -42,6 +43,7 @@ Item {
     search.text = ""
     selectedIndex = 0
     confirmClear = false
+    clearPicks()
     rebuild()
     list.positionViewAtBeginning()
   }
@@ -87,6 +89,82 @@ Item {
     copiedTimer.restart()
   }
   property string copiedNote: ""
+
+  // ---- Multi-select: Ctrl+click toggles, Shift+click picks a range, Ctrl+C
+  // copies everything picked. Picks are keyed by the entry itself, so they
+  // survive the list changing underneath (a new copy elsewhere, a search).
+  property var picked: ({})
+  property int pickedCount: 0
+  property int pickAnchor: -1          // history index of the last Ctrl+click
+  function entryKey(historyIndex) {
+    var e = history[historyIndex]
+    return e ? JSON.stringify(e) : ""
+  }
+  function isPicked(historyIndex) {
+    pickedCount                          // re-evaluate when picks change
+    return picked[entryKey(historyIndex)] === true
+  }
+  function setPicked(next) {
+    picked = next
+    pickedCount = Object.keys(next).length
+  }
+  function togglePick(row) {
+    var next = Object.assign({}, picked), key = entryKey(row.index)
+    if (next[key]) delete next[key]; else next[key] = true
+    pickAnchor = row.index
+    setPicked(next)
+  }
+  function pickRange(row) {
+    if (pickAnchor < 0) { togglePick(row); return }
+    var next = Object.assign({}, picked)
+    var lo = Math.min(pickAnchor, row.index), hi = Math.max(pickAnchor, row.index)
+    for (var i = 0; i < rows.length; i++)
+      if (rows[i].index >= lo && rows[i].index <= hi) next[entryKey(rows[i].index)] = true
+    setPicked(next)
+  }
+  function clearPicks() { setPicked({}); pickAnchor = -1 }
+  function copyPicked() {
+    var texts = [], files = [], images = 0
+    for (var i = 0; i < history.length; i++) {      // newest first, like the list
+      if (!picked[entryKey(i)]) continue
+      var e = history[i], paths = ClipboardHistory.filePaths(e)
+      if (e.type === "image" && e.path) { files.push(String(e.path)); images++ }
+      else if (paths.length) files = files.concat(paths)
+      else { var t = ClipboardHistory.fullText(e); if (t) texts.push(t) }
+    }
+    var count = texts.length + files.length
+    if (count === 0) return
+    Quickshell.execDetached(["python3", Qt.resolvedUrl("clipcopy.py").toString().replace("file://", ""),
+                             JSON.stringify({ texts: texts, files: files })])
+    copiedNote = count + " items copied" + (files.length ? " (as files)" : "")
+    copiedTimer.restart()
+    clearPicks()
+  }
+
+  // ---- Row text: what the item is and when it was copied.
+  function rowTitle(row) {
+    if (row.entryType === "image") return "Image"
+    return String(row.previewText || "").replace(/\s+/g, " ").trim()
+  }
+  function rowSubtitle(row) {
+    var e = history[row.index] || {}
+    var when = e.capturedAt ? String(e.capturedAt) : ""
+    var what
+    if (row.entryType === "image") what = (String(row.mime).split("/")[1] || "image").toUpperCase()
+    else if (row.entryType === "file") {
+      var n = ClipboardHistory.filePaths(e).length
+      what = n === 1 ? "File" : n + " files"
+    } else {
+      var t = String(row.fullText || "")
+      var m = t.match(/^\s*https?:\/\/([^\/\s]+)/i)
+      if (m) what = "Link · " + m[1].replace(/^www\./, "")
+      else {
+        var lines = t.split("\n").length
+        what = lines > 1 ? "Text · " + lines + " lines" : "Text · " + t.length + " chars"
+      }
+    }
+    return when ? what + " · " + when : what
+  }
   function openRow(row) {
     if (!row) return
     run([omarchyPath + "/bin/omarchy-clipboard-open", "--history-index", String(row.index)])
@@ -136,8 +214,11 @@ Item {
       onTextEdited: { view.filterText = text; view.selectedIndex = 0; view.rebuild() }
       Keys.onPressed: function(event) {
         var row = view.rows[view.selectedIndex]
-        if (event.key === Qt.Key_Escape) {
-          if (view.filterText) { view.filterText = ""; text = ""; view.rebuild() } else view.closeRequested()
+        if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier) && selectedText === "") {
+          if (view.pickedCount > 0) view.copyPicked(); else view.copy(row)
+        } else if (event.key === Qt.Key_Escape) {
+          if (view.pickedCount > 0) view.clearPicks()
+          else if (view.filterText) { view.filterText = ""; text = ""; view.rebuild() } else view.closeRequested()
         } else if (event.key === Qt.Key_Down) view.select(1)
         else if (event.key === Qt.Key_Up) view.select(-1)
         else if (event.key === Qt.Key_PageDown) view.select(6)
@@ -167,59 +248,99 @@ Item {
       boundsBehavior: Flickable.StopAtBounds
       ScrollBar.vertical: ScrollBar { policy: list.contentHeight > list.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
 
+      // Every row has the same shape: a 64x40 tile on the left (thumbnail or
+      // icon), then a title and a dim line saying what it is and when.
       delegate: Rectangle {
         id: row
         required property var modelData
         required property int index
         readonly property bool selected: index === view.selectedIndex
+        readonly property bool isPicked: view.isPicked(modelData.index)
         readonly property bool hasImage: modelData.previewImage !== ""
-        width: list.width - Style.space(10)
-        height: hasImage ? Style.space(64) : Style.space(38)
+        readonly property bool isLink: /^\s*https?:\/\//i.test(String(modelData.fullText || ""))
+        width: list.width - Style.space(12)
+        height: Style.space(52)
         radius: Style.space(8)
-        color: selected ? Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.14)
-             : rowMouse.containsMouse ? Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.07) : "transparent"
+        color: isPicked ? Qt.rgba(view.accent.r, view.accent.g, view.accent.b, selected ? 0.26 : 0.18)
+             : selected ? Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.12)
+             : "transparent"
+        border.width: isPicked ? 1 : 0
+        border.color: Qt.rgba(view.accent.r, view.accent.g, view.accent.b, 0.6)
 
         RowLayout {
           anchors.fill: parent
-          anchors.leftMargin: Style.space(8)
-          anchors.rightMargin: Style.space(8)
+          anchors.leftMargin: Style.space(6)
+          anchors.rightMargin: Style.space(10)
           spacing: Style.space(10)
 
-          Text {
-            visible: !row.hasImage
-            textFormat: Text.PlainText
-            text: row.modelData.entryType === "file" ? "󰈔" : "󰈙"
-            color: view.accent
-            font.family: Style.font.family
-            font.pixelSize: Style.font.icon
-          }
-
-          Rectangle {
-            visible: row.hasImage
-            Layout.preferredWidth: Style.space(80)
-            Layout.preferredHeight: Style.space(54)
+          ClippingRectangle {
+            Layout.preferredWidth: Style.space(64)
+            Layout.preferredHeight: Style.space(40)
             radius: Style.space(6)
-            color: Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.06)
-            clip: true
+            color: Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.07)
+
             Image {
               anchors.fill: parent
+              visible: row.hasImage
               source: row.hasImage ? "file://" + row.modelData.previewImage : ""
-              sourceSize.width: 160
-              sourceSize.height: 108
+              sourceSize.width: 128
+              sourceSize.height: 80
               asynchronous: true
               fillMode: Image.PreserveAspectCrop
             }
+            Text {
+              anchors.centerIn: parent
+              visible: !row.hasImage
+              textFormat: Text.PlainText
+              text: row.modelData.entryType === "file" ? "󰈔" : row.isLink ? "󰌹" : "󰦨"
+              color: view.accent
+              font.family: Style.font.family
+              font.pixelSize: Style.font.icon
+            }
           }
 
-          Text {
+          ColumnLayout {
             Layout.fillWidth: true
-            textFormat: Text.PlainText
-            text: String(row.modelData.previewText || "").replace(/\s+/g, " ")
-            color: view.fg
-            font.family: Style.font.family
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-            maximumLineCount: 1
+            spacing: Style.space(2)
+            Text {
+              Layout.fillWidth: true
+              textFormat: Text.PlainText
+              text: view.rowTitle(row.modelData)
+              color: view.fg
+              font.family: Style.font.family
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
+              maximumLineCount: 1
+            }
+            Text {
+              Layout.fillWidth: true
+              textFormat: Text.PlainText
+              text: view.rowSubtitle(row.modelData)
+              color: Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.45)
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+              elide: Text.ElideRight
+              maximumLineCount: 1
+            }
+          }
+
+          // Tick for picked rows
+          Rectangle {
+            Layout.preferredWidth: Style.space(18)
+            Layout.preferredHeight: Style.space(18)
+            radius: width / 2
+            visible: view.pickedCount > 0
+            color: row.isPicked ? view.accent : "transparent"
+            border.width: row.isPicked ? 0 : 1
+            border.color: Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.3)
+            Text {
+              anchors.centerIn: parent
+              visible: row.isPicked
+              text: "✓"
+              color: Commons.Color.background
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
           }
         }
 
@@ -233,7 +354,11 @@ Item {
           onClicked: function(mouse) {
             if (mouse.button === Qt.RightButton) view.paste(row.modelData)
             else if (mouse.button === Qt.MiddleButton) view.removeRow(row.modelData)
+            else if (mouse.modifiers & Qt.ControlModifier) view.togglePick(row.modelData)
+            else if (mouse.modifiers & Qt.ShiftModifier) view.pickRange(row.modelData)
+            else if (view.pickedCount > 0) view.togglePick(row.modelData)   // while picking, click adds too
             else view.copy(row.modelData)
+            search.forceActiveFocus()            // keep Ctrl+C / Esc working
           }
         }
       }
@@ -254,9 +379,10 @@ Item {
       textFormat: Text.PlainText
       text: view.confirmClear ? "Press Shift+Delete again to clear the whole clipboard history"
           : view.copiedNote ? "✓ " + view.copiedNote
+          : view.pickedCount > 0 ? view.pickedCount + " selected  ·  Ctrl+C copy all  ·  click or Ctrl+click to add/remove  ·  Esc clear"
           : view.rows.length + (view.rows.length === 1 ? " item" : " items")
-            + "  ·  Click copy  ·  Enter or right-click paste  ·  Alt+Enter open  ·  Del remove"
-      color: view.confirmClear || view.copiedNote ? view.accent : Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.45)
+            + "  ·  Click copy  ·  Ctrl+click select  ·  Right-click paste  ·  Del remove"
+      color: view.confirmClear || view.copiedNote || view.pickedCount > 0 ? view.accent : Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.45)
       font.family: Style.font.family
       font.pixelSize: Style.font.caption
       elide: Text.ElideRight
