@@ -1,0 +1,1 @@
+/usr/share/omarchy/shell/plugins/clipboard/ClipboardHistory.js

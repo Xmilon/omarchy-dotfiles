@@ -31,3 +31,7 @@ o.bind("SUPER + mouse:274", "New empty workspace", hl.dsp.focus({ workspace = "e
 
 -- Super + Alt + N: open or close Quick Notes in the bar.
 o.bind("SUPER + ALT + N", "Quick notes", "omarchy-shell xmilon.notes toggle")
+
+-- Super + Alt + V: Quick Notes panel, Clipboard tab (Super + Ctrl + V is still
+-- Omarchy's full clipboard manager).
+o.bind("SUPER + ALT + V", "Clipboard (notes panel)", "omarchy-shell xmilon.notes clipboard")

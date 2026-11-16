@@ -14,6 +14,32 @@ Panel {
   id: root
   moduleName: "xmilon.notes"
   ipcTarget: "xmilon.notes"
+  manageIpc: false   // we own the IPC target to add "clipboard"
+
+  // 0 = Notes, 1 = Clipboard (Omarchy's clipboard history; see ClipboardView.qml)
+  property int tab: 0
+  function openTab(t) {
+    tab = t
+    if (t === 1 && panel.loadedContent) panel.loadedContent.resetClipboard()
+    if (!opened) { open(); return }
+    // Already open: take keyboard focus back (another window may have it),
+    // then focus the right field.
+    if (typeof panel.beginFocusPrime === "function") panel.beginFocusPrime()
+    if (panel.loadedContent) {
+      if (t === 1) panel.loadedContent.focusClipboard()
+      else panel.loadedContent.editor.forceActiveFocus()
+    }
+  }
+
+  ShellIpc {
+    target: "xmilon.notes"
+    function open() { root.openTab(0) }
+    function close() { root.close() }
+    function toggle() { if (root.opened) root.close(); else root.openTab(0) }
+    function clipboard() { if (root.opened && root.tab === 1) root.close(); else root.openTab(1) }
+    function show() { root.openTab(0) }
+    function hide() { root.close() }
+  }
 
   readonly property string helper: String(Qt.resolvedUrl("notes.py")).replace(/^file:\/\//, "")
   readonly property color fg: Commons.Color.foreground
@@ -364,7 +390,12 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: "󰠮"
-    onPressed: function(b) { root.toggle() }
+    // Left-click: notes. Right-click: clipboard.
+    onPressed: function(b) {
+      var want = b === Qt.RightButton ? 1 : 0
+      if (root.opened && root.tab === want) root.close()
+      else root.openTab(want)
+    }
   }
 
   // ------------------------------------------------------------- panel
@@ -375,16 +406,26 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    focusTarget: panel.loadedContent ? panel.loadedContent.editor : null
+    focusTarget: panel.loadedContent ? (root.tab === 1 ? panel.loadedContent.clipboardSearch : panel.loadedContent.editor) : null
     contentWidth: panel.fittedContentWidth(Style.space(620))
-    contentHeight: panel.fittedContentHeight(Style.space(420), Style.space(520))
+    contentHeight: panel.fittedContentHeight(Style.space(470), Style.space(560))
 
     content: Item {
       id: body
-      implicitHeight: Style.space(420)
+      implicitHeight: Style.space(470)
       anchors.fill: parent
       Keys.onEscapePressed: root.close()
       property alias editor: bodyArea
+      property Item clipboardSearch: clipView.searchField
+      function focusClipboard() { clipView.focusSearch() }
+      function resetClipboard() { clipView.reset() }
+      Connections {
+        target: root
+        function onTabChanged() {
+          if (root.tab === 1) clipView.focusSearch()
+          else bodyArea.forceActiveFocus()
+        }
+      }
 
       function loadBody() {
         root.loadingText = true
@@ -399,11 +440,62 @@ Panel {
         function onFocusBody() { bodyArea.forceActiveFocus() }
       }
 
-      Shortcut { sequence: "Ctrl+N"; onActivated: root.newNote() }
-      Shortcut { sequence: "Ctrl+P"; onActivated: root.togglePin() }
+      Shortcut { sequence: "Ctrl+N"; enabled: root.tab === 0; onActivated: root.newNote() }
+      Shortcut { sequence: "Ctrl+P"; enabled: root.tab === 0; onActivated: root.togglePin() }
+      Shortcut { sequence: "Ctrl+1"; onActivated: root.tab = 0 }
+      Shortcut { sequence: "Ctrl+2"; onActivated: root.tab = 1 }
+
+      // ---- tabs
+      Row {
+        id: tabBar
+        anchors.top: parent.top
+        anchors.left: parent.left
+        spacing: Style.space(4)
+        Repeater {
+          model: [{ label: "Notes", icon: "󰠮", key: "Ctrl+1" }, { label: "Clipboard", icon: "󰅇", key: "Ctrl+2" }]
+          Button {
+            required property var modelData
+            required property int index
+            text: modelData.label
+            iconText: modelData.icon
+            tooltipText: modelData.key
+            selected: root.tab === index
+            foreground: root.fg
+            onClicked: root.tab = index
+          }
+        }
+      }
+      Rectangle {
+        id: tabRule
+        anchors.top: tabBar.bottom
+        anchors.topMargin: Style.space(6)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+      }
+
+      ClipboardView {
+        id: clipView
+        visible: root.tab === 1
+        anchors.top: tabRule.bottom
+        anchors.topMargin: Style.space(10)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        bar: root.bar
+        fg: root.fg
+        accent: root.accent
+        onCloseRequested: root.close()
+      }
 
       RowLayout {
-        anchors.fill: parent
+        visible: root.tab === 0
+        anchors.top: tabRule.bottom
+        anchors.topMargin: Style.space(10)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         spacing: Style.space(12)
 
         // ---- page list
@@ -676,6 +768,7 @@ Panel {
       // Drop files anywhere on the panel: they are attached and placed at the cursor.
       DropArea {
         anchors.fill: parent
+        enabled: root.tab === 0
         onDropped: function(drop) {
           if (drop.hasUrls) root.attachFiles(drop.urls)
         }
