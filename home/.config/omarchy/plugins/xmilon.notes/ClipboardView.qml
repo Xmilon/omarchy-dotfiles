@@ -12,8 +12,8 @@ import "ClipboardHistory.js" as ClipboardHistory  // link to Omarchy's own file
 // actions as its full manager (Super+Ctrl+V). It reads and writes Omarchy's own
 // history file and reuses Omarchy's history logic and copy/paste commands.
 //
-//   type          search            Enter / click      paste into the window you were in
-//   ↑ ↓ PgUp PgDn Home End  move    Shift+Enter        copy only (right-click too)
+//   type          search            Enter / right-click  paste into the window you were in
+//   ↑ ↓ PgUp PgDn Home End  move    click / Shift+Enter  copy only (panel stays open)
 //   Delete        remove item       Alt+Enter          open
 //   Shift+Delete  clear history (press twice)          Esc  clear search, then close
 Item {
@@ -76,11 +76,17 @@ Item {
     if (row.entryType === "image") run([omarchyPath + "/bin/omarchy-clipboard-paste-file", row.mime, row.path])
     else if (row.fullText) run([omarchyPath + "/bin/omarchy-clipboard-paste-text", "--shift-insert", "--history-index", String(row.index)])
   }
+  // Copy only: the panel stays open (nothing needs focus back), with a short
+  // "Copied" note in the footer.
   function copy(row) {
     if (!row) return
-    if (row.entryType === "image") run([omarchyPath + "/bin/omarchy-clipboard-paste-file", "--copy-only", row.mime, row.path])
-    else if (row.fullText) run([omarchyPath + "/bin/omarchy-clipboard-paste-text", "--copy-only", "--history-index", String(row.index)])
+    if (row.entryType === "image") Quickshell.execDetached([omarchyPath + "/bin/omarchy-clipboard-paste-file", "--copy-only", row.mime, row.path])
+    else if (row.fullText) Quickshell.execDetached([omarchyPath + "/bin/omarchy-clipboard-paste-text", "--copy-only", "--history-index", String(row.index)])
+    else return
+    copiedNote = row.entryType === "image" ? "Image copied" : "Copied"
+    copiedTimer.restart()
   }
+  property string copiedNote: ""
   function openRow(row) {
     if (!row) return
     run([omarchyPath + "/bin/omarchy-clipboard-open", "--history-index", String(row.index)])
@@ -105,6 +111,7 @@ Item {
     onTriggered: if (view.pendingAction) { Quickshell.execDetached(view.pendingAction); view.pendingAction = null }
   }
   Timer { id: confirmTimer; interval: 2500; onTriggered: view.confirmClear = false }
+  Timer { id: copiedTimer; interval: 1500; onTriggered: view.copiedNote = "" }
 
   FileView {
     id: historyFile
@@ -224,9 +231,9 @@ Item {
           acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
           onEntered: view.selectedIndex = row.index
           onClicked: function(mouse) {
-            if (mouse.button === Qt.RightButton) view.copy(row.modelData)
+            if (mouse.button === Qt.RightButton) view.paste(row.modelData)
             else if (mouse.button === Qt.MiddleButton) view.removeRow(row.modelData)
-            else view.paste(row.modelData)
+            else view.copy(row.modelData)
           }
         }
       }
@@ -246,9 +253,10 @@ Item {
       Layout.fillWidth: true
       textFormat: Text.PlainText
       text: view.confirmClear ? "Press Shift+Delete again to clear the whole clipboard history"
+          : view.copiedNote ? "✓ " + view.copiedNote
           : view.rows.length + (view.rows.length === 1 ? " item" : " items")
-            + "  ·  Enter paste  ·  Shift+Enter or right-click copy  ·  Alt+Enter open  ·  Del remove"
-      color: view.confirmClear ? view.accent : Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.45)
+            + "  ·  Click copy  ·  Enter or right-click paste  ·  Alt+Enter open  ·  Del remove"
+      color: view.confirmClear || view.copiedNote ? view.accent : Qt.rgba(view.fg.r, view.fg.g, view.fg.b, 0.45)
       font.family: Style.font.family
       font.pixelSize: Style.font.caption
       elide: Text.ElideRight
