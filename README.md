@@ -40,6 +40,7 @@ To track a new file, add its path (relative to your home folder) to `paths.txt`.
 | **Command line** (`.blerc`, ble.sh) | IDE-like completion, no syntax colours, Shift+arrow selection and Ctrl+A select-all with Backspace / Ctrl+C / Ctrl+X / typing-replaces; Ctrl+V pastes (in the shell only, so nano/vim keep theirs). |
 | **Files** (`.config/gtk-4.0/gtk.css`) | See-through panels over the blur, rounded hover and selection. |
 | **Hyprland** | Super+scroll switches workspaces without the 300 ms delay and slides; Super+middle-click opens a new empty workspace; 1080p@180 external monitor; GDK scale 1 (normal-size Steam); digital vibrance at login. |
+| **Wallpapers** (`.config/omarchy/backgrounds/gruvpink`) | My wallpapers added to the gruvpink theme, so Super+Ctrl+Space cycles through them along with its own. |
 | **Icons** | Conflux, with Papirus-Dark as fallback; a theme hook keeps them after theme changes. |
 | **fastfetch** | GitHub avatar, XMILON gradient banner. |
 | **SpotX** | Pacman hook that re-applies SpotX after each Spotify update (`system/`). |
