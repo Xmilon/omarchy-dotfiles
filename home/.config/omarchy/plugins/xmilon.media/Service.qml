@@ -49,7 +49,33 @@ Item {
   property var vizQueue: []
   readonly property bool vizRunning: !!activePlayer && !!activePlayer.isPlaying && !Style.reduceMotion
 
-  function vizApply(values) {
+  // cava hears the audio before the system volume is applied, so scale the bars
+  // by the output volume: quiet playback gives small bars, loud gives big ones.
+  readonly property real vizGain: {
+    var s = defaultSink
+    if (!s || !s.audio || s.audio.muted) return s && s.audio ? 0 : 1
+    // Square root: 50% volume still gives ~70% bar height, 10% gives ~30%.
+    return Math.sqrt(Math.max(0, Math.min(1.5, s.audio.volume)))
+  }
+
+  // The playing app's own PipeWire stream (for its volume slider).
+  readonly property var activeStream: streamForPlayer(activePlayer)
+  function streamForPlayer(player) {
+    if (!player) return null
+    var key = streamLabelKey(playerAppLabel(player))
+    if (!key) return null
+    for (var i = 0; i < playbackStreams.length; i++) {
+      var node = playbackStreams[i]
+      var sk = streamLabelKey(rawStreamLabel(node))
+      if (sk && (sk === key || sk.indexOf(key) !== -1 || key.indexOf(sk) !== -1)) return node
+    }
+    return null
+  }
+
+  function vizApply(raw) {
+    // Gentle curve so quiet passages stay visible, then the volume scale.
+    var values = []
+    for (var j = 0; j < raw.length; j++) values.push(Math.min(1, Math.pow(raw[j], 0.6) * vizGain))
     var grouped = []
     for (var g = 0; g < vizBars; g++) {
       var peak = 0

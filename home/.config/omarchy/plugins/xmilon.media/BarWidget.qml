@@ -38,8 +38,23 @@ BarWidget {
     value: Math.max(0, Math.min(1000, Number(root.settings && root.settings.vizDelayMs) || 0))
   }
 
-  visible: hasMedia
-  implicitWidth: hasMedia ? row.implicitWidth + Style.space(14) : 0
+  // Volume of the playing app: its own PipeWire stream when found (Spotify,
+  // browsers...), otherwise the player's MPRIS volume.
+  readonly property var volumeStream: mediaService && mediaService.activeStream ? mediaService.activeStream : null
+  readonly property bool streamVolume: !!(volumeStream && volumeStream.audio)
+  readonly property bool volumeAvailable: streamVolume || !!(activePlayer && activePlayer.volumeSupported && activePlayer.canControl)
+  readonly property real playerVolume: streamVolume ? volumeStream.audio.volume
+    : (activePlayer && activePlayer.volumeSupported ? Number(activePlayer.volume) || 0 : 0)
+  readonly property bool playerMuted: streamVolume ? volumeStream.audio.muted : false
+  function setPlayerVolume(v) {
+    v = Math.max(0, Math.min(1, v))
+    if (streamVolume) volumeStream.audio.volume = v
+    else if (activePlayer && activePlayer.volumeSupported) activePlayer.volume = v
+  }
+
+  // Always on the bar, even with nothing playing (bars rest flat, label says so).
+  visible: true
+  implicitWidth: row.implicitWidth + Style.space(14)
   implicitHeight: barSize
 
   Row {
@@ -47,10 +62,12 @@ BarWidget {
     anchors.centerIn: parent
     spacing: Style.space(6)
 
-    // Moving sound bars while playing; the play glyph when paused.
+    // Sound bars: always shown; they move with the music and rest flat
+    // (dimmer) when nothing is playing.
     Row {
       id: viz
-      visible: root.isPlaying && !Style.reduceMotion
+      visible: !Style.reduceMotion
+      opacity: root.isPlaying ? 1 : 0.45
       anchors.verticalCenter: parent.verticalCenter
       height: Math.round(root.barSize * 0.55)
       spacing: 2
@@ -92,13 +109,13 @@ BarWidget {
       height: glyph.height
       clip: true
       anchors.verticalCenter: parent.verticalCenter
-      visible: !root.bar.vertical && root.title !== ""
+      visible: !root.bar.vertical
 
       Text {
         id: labelText
         textFormat: Text.PlainText
-        text: root.title + (root.artist ? "  ·  " + root.artist : "")
-        color: root.bar.barForeground
+        text: root.title !== "" ? root.title + (root.artist ? "  ·  " + root.artist : "") : I18n.t("media.nothingPlaying")
+        color: root.title !== "" ? root.bar.barForeground : Qt.darker(root.bar.barForeground, 1.6)
         font.family: root.bar.fontFamily
         font.pixelSize: Style.font.body
         anchors.verticalCenter: parent.verticalCenter
@@ -125,11 +142,12 @@ BarWidget {
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
-    cursorShape: root.activePlayer ? Qt.PointingHandCursor : Qt.ArrowCursor
+    cursorShape: Qt.PointingHandCursor
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
     onClicked: function(mouse) {
-      if (!root.activePlayer) return
+      // Left-click opens the popup even with nothing playing.
+      if (!root.activePlayer && mouse.button !== Qt.LeftButton) return
       if (mouse.button === Qt.MiddleButton) {
         if (root.mediaService) root.mediaService.runAction("next", false)
       } else if (mouse.button === Qt.RightButton) {
@@ -237,7 +255,8 @@ BarWidget {
         id: bigViz
         width: parent.width
         height: Style.space(64)
-        visible: root.isPlaying && !Style.reduceMotion
+        visible: !Style.reduceMotion
+        opacity: root.isPlaying ? 1 : 0.5
         renderStrategy: Canvas.Cooperative
         readonly property color waveColor: Commons.Color.accent
 
@@ -245,14 +264,19 @@ BarWidget {
           target: root
           enabled: root.popupOpen && bigViz.visible
           function onLevelsChanged() { bigViz.requestPaint() }
+          function onIsPlayingChanged() { bigViz.requestPaint() }
+        }
+        Connections {
+          target: root
+          function onPopupOpenChanged() { if (root.popupOpen) bigViz.requestPaint() }
         }
 
         onPaint: {
           var ctx = getContext("2d")
           ctx.reset()
-          var pts = root.levels
+          // Nothing playing: a flat resting line.
+          var pts = root.levels.length >= 2 ? root.levels : new Array(48).fill(0)
           var n = pts.length
-          if (n < 2) return
           var w = width, h = height, step = w / (n - 1)
           function y(i) { return h - Math.max(2, h * pts[i]) }
 
@@ -313,6 +337,62 @@ BarWidget {
           enabled: root.activePlayer && root.activePlayer.canGoNext
           opacity: enabled ? 1.0 : 0.4
           onClicked: if (root.mediaService) root.mediaService.runAction("next", false, root.mediaService.playerKey(root.activePlayer))
+        }
+      }
+
+      // Volume of the playing app. Click the speaker (or right-click the
+      // slider) to mute; scroll over the row to nudge it.
+      Row {
+        id: volumeRow
+        width: parent.width
+        spacing: Style.space(8)
+        visible: root.volumeAvailable
+        opacity: root.playerMuted ? 0.5 : 1.0
+
+        Text {
+          id: volumeIcon
+          anchors.verticalCenter: parent.verticalCenter
+          textFormat: Text.PlainText
+          text: root.playerMuted || root.playerVolume <= 0 ? "󰝟" : (root.playerVolume < 0.5 ? "󰖀" : "󰕾")
+          color: root.bar.foreground
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.icon
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: if (root.streamVolume) root.volumeStream.audio.muted = !root.volumeStream.audio.muted
+          }
+        }
+
+        PanelSlider {
+          id: volumeSlider
+          bar: root.bar
+          anchors.verticalCenter: parent.verticalCenter
+          width: parent.width - volumeIcon.width - volumePct.width - parent.spacing * 2
+          minimum: 0
+          maximum: 1
+          step: 0.05
+          value: root.playerVolume
+          onMoved: function(v) { root.setPlayerVolume(v) }
+          onRightClicked: if (root.streamVolume) root.volumeStream.audio.muted = !root.volumeStream.audio.muted
+        }
+
+        Text {
+          id: volumePct
+          anchors.verticalCenter: parent.verticalCenter
+          width: Style.space(34)
+          horizontalAlignment: Text.AlignRight
+          textFormat: Text.PlainText
+          text: Math.round(root.playerVolume * 100) + "%"
+          color: Qt.darker(root.bar.foreground, 1.3)
+          font.family: root.bar.fontFamily
+          font.pixelSize: Style.font.caption
+        }
+
+        WheelHandler {
+          onWheel: function(event) {
+            root.setPlayerVolume(root.playerVolume + (event.angleDelta.y > 0 ? 0.05 : -0.05))
+          }
         }
       }
 
