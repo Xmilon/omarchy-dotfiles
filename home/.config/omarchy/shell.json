@@ -24,7 +24,7 @@
           "format": "dddd HH:mm",
           "formatAlt": "d MMMM 'W'ww yyyy",
           "id": "omarchy.clock",
-          "verticalFormat": "HH\n—\nmm"
+          "verticalFormat": "HH\n\u2014\nmm"
         },
         {
           "id": "divider3",
@@ -71,6 +71,9 @@
         },
         {
           "id": "xmilon.notes"
+        },
+        {
+          "id": "xmilon.clipboard"
         },
         {
           "id": "omarchy.system-update"

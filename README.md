@@ -33,7 +33,8 @@ To track a new file, add its path (relative to your home folder) to `paths.txt`.
 |---|---|
 | **Bar** (`.config/omarchy/shell.json`) | Centered middle group: indicators, music, clock, world clock, weather, notes, with thin dividers. System info on the right. |
 | **Music widget** (`plugins/xmilon.media`) | Left-click opens the popup, right-click play/pause. cava sound bars in the bar and a wave in the popup. `"vizDelayMs"` on its bar entry shifts the bars to match the sound. |
-| **Quick Notes** (`plugins/xmilon.notes`) | Named pages that save as you type, with dates and pinning. Pages live in `~/Notes/Quick/*.md` (not in this repo). Super+Alt+N toggles it. |
+| **Quick Notes** (`plugins/xmilon.notes`) | Named pages that save as you type, with dates and pinning; images, videos and files inline at the cursor (paste, drop or attach); Ctrl+click opens links. Pages live in `~/Notes/Quick/` (not in this repo). Super+Alt+N toggles it. |
+| **Clipboard** (`plugins/xmilon.clipboard`) | Bar icon for Omarchy's clipboard history: recent text and images, click to copy again; right-click opens the full manager (Super+Ctrl+V). |
 | **System Info** (`plugins/xmilon.sysinfo`) | CPU %, temperature and RAM in the bar; popup with GPU (nvidia-smi), VRAM, swap, disk, uptime. |
 | **Indicators** (`plugins/xmilon.indicators`) | Always visible; only open when hovered themselves, with a slide animation. |
 | **Ghostty** | Very translucent with blur, no title bar, cursor trail shader, Ctrl+C (copies when text is selected) / Ctrl+V without Shift. |
