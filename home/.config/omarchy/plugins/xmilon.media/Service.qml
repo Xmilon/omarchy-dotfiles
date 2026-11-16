@@ -90,7 +90,13 @@ Item {
     id: cava
     command: ["stdbuf", "-o0", "cava", "-p", String(Qt.resolvedUrl("cava/bar.conf")).replace(/^file:\/\//, "")]
     running: root.vizRunning
-    onRunningChanged: if (!running) { root.vizQueue = []; root.vizApply([]) }
+    // Stopping fades the bars down instead of dropping them flat at once;
+    // starting again cancels the fade.
+    onRunningChanged: {
+      root.vizQueue = []
+      if (running) vizFade.stop()
+      else vizFade.start()
+    }
     stdout: SplitParser {
       onRead: function(line) {
         var parts = line.split(";")
@@ -112,6 +118,26 @@ Item {
     }
   }
   Component.onDestruction: cava.running = false
+
+  // ~0.5 s ease-out to rest: each tick keeps 80% of the height.
+  Timer {
+    id: vizFade
+    interval: 33
+    repeat: true
+    onTriggered: {
+      var peak = 0
+      var lv = root.vizLevels.map(function(v) { v *= 0.8; peak = Math.max(peak, v); return v })
+      var bl = root.vizBarLevels.map(function(v) { return v * 0.8 })
+      if (peak < 0.02) {
+        stop()
+        root.vizLevels = []
+        root.vizBarLevels = []
+        return
+      }
+      root.vizLevels = lv
+      root.vizBarLevels = bl
+    }
+  }
 
   function isProxyPlayer(player) {
     return MediaModel.isProxyPlayer(player)
