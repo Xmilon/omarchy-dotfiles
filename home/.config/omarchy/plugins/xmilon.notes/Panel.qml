@@ -35,6 +35,96 @@ Panel {
   // talks to it through these signals instead of by id.
   signal noteLoaded()
   signal focusBody()
+  signal pasteText()
+
+  // ------------------------------------------------------------- attachments
+  // Files live in ~/Notes/Quick/media/<page id>/ (see notes.py).
+  readonly property var attachments: currentNote && currentNote.attachments ? currentNote.attachments : []
+  property var attachQueue: []
+
+  function setAttachments(list) {
+    var id = currentId
+    notes = notes.map(function(n) {
+      return n.id === id ? Object.assign({}, n, { attachments: list }) : n
+    })
+  }
+  function needsSavedPage() {
+    if (currentId) return false
+    status = "Write something or name the page first"
+    return true
+  }
+  function attachFiles(paths) {
+    if (needsSavedPage()) return
+    attachQueue = attachQueue.concat(paths.map(function(p) { return String(p) }).filter(function(p) { return p !== "" }))
+    runAttachQueue()
+  }
+  function runAttachQueue() {
+    if (attachProc.running || attachQueue.length === 0) return
+    var next = attachQueue[0]
+    attachQueue = attachQueue.slice(1)
+    attachProc.command = ["python3", "-I", root.helper, "attach", root.currentId, next]
+    attachProc.running = true
+    status = "Attaching…"
+  }
+  function pasteImage() {
+    if (needsSavedPage() || attachProc.running) return
+    attachProc.command = ["python3", "-I", root.helper, "paste-image", root.currentId]
+    attachProc.running = true
+    status = "Pasting image…"
+  }
+  function detach(name) {
+    if (!currentId || attachProc.running) return
+    attachProc.command = ["python3", "-I", root.helper, "detach", root.currentId, name]
+    attachProc.running = true
+  }
+  function openAttachment(path) {
+    Quickshell.execDetached(["xdg-open", path])
+  }
+  function pickFiles() {
+    if (needsSavedPage() || pickProc.running) return
+    pickProc.running = true
+  }
+  // Ctrl+V in the editor: an image on the clipboard becomes an attachment,
+  // anything else pastes as text.
+  function smartPaste() {
+    if (!clipTypesProc.running) clipTypesProc.running = true
+  }
+
+  Process {
+    id: attachProc
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try {
+          var out = JSON.parse(text)
+          if (out && out.error) root.status = out.error
+          else if (Array.isArray(out)) { root.setAttachments(out); root.status = "Saved" }
+        } catch (e) { root.status = "Couldn't attach" }
+      }
+    }
+    onRunningChanged: if (!running) Qt.callLater(root.runAttachQueue)
+  }
+
+  Process {
+    id: pickProc
+    command: ["zenity", "--file-selection", "--multiple", "--separator=\n", "--title=Attach files to note"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var files = text.split("\n").filter(function(l) { return l.trim() !== "" })
+        if (files.length > 0) root.attachFiles(files)
+      }
+    }
+  }
+
+  Process {
+    id: clipTypesProc
+    command: ["wl-paste", "--list-types"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (/(^|\n)image\//.test(text)) root.pasteImage()
+        else root.pasteText()
+      }
+    }
+  }
 
   readonly property var currentNote: {
     for (var i = 0; i < notes.length; i++) if (notes[i].id === currentId) return notes[i]
@@ -360,6 +450,15 @@ Panel {
             }
 
             Button {
+              iconText: "󰏢"
+              foreground: root.fg
+              tooltipText: "Attach files (or drop them here, or paste an image)"
+              enabled: root.currentId !== ""
+              opacity: enabled ? 1 : 0.4
+              onClicked: root.pickFiles()
+            }
+
+            Button {
               iconText: root.draftPinned ? "󰐃" : "󰤱"
               foreground: root.draftPinned ? root.accent : root.fg
               tooltipText: root.draftPinned ? "Unpin (Ctrl+P)" : "Pin to top (Ctrl+P)"
@@ -434,9 +533,113 @@ Panel {
                   root.queueSave()
                 }
                 Keys.onEscapePressed: root.close()
+                Keys.onPressed: function(event) {
+                  if (event.key === Qt.Key_V && (event.modifiers & Qt.ControlModifier)
+                      && !(event.modifiers & Qt.ShiftModifier)) {
+                    event.accepted = true
+                    root.smartPaste()
+                  }
+                }
+                Connections {
+                  target: root
+                  function onPasteText() { bodyArea.paste() }
+                }
               }
             }
           }
+
+          // ---- attachments: image thumbnails and file chips
+          Flickable {
+            id: attachStrip
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.attachments.length > 0 ? Style.space(76) : 0
+            visible: root.attachments.length > 0
+            contentWidth: attachRow.width
+            contentHeight: height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            Row {
+              id: attachRow
+              height: parent.height
+              spacing: Style.space(6)
+
+              Repeater {
+                model: root.attachments
+
+                Rectangle {
+                  id: chip
+                  required property var modelData
+                  readonly property bool isImage: modelData.kind === "image"
+                  width: isImage ? height : Style.space(150)
+                  height: attachStrip.height
+                  radius: Style.space(8)
+                  color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, chipMouse.containsMouse ? 0.12 : 0.06)
+                  border.width: 1
+                  border.color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
+                  clip: true
+
+                  Image {
+                    visible: chip.isImage
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    source: chip.isImage ? "file://" + chip.modelData.path : ""
+                    sourceSize.width: 160
+                    sourceSize.height: 160
+                    asynchronous: true
+                    cache: false
+                    fillMode: Image.PreserveAspectCrop
+                  }
+
+                  Column {
+                    visible: !chip.isImage
+                    anchors.fill: parent
+                    anchors.margins: Style.space(8)
+                    spacing: Style.space(4)
+                    Text {
+                      textFormat: Text.PlainText
+                      text: chip.modelData.kind === "video" ? "󰕧" : chip.modelData.kind === "audio" ? "󰎆"
+                          : chip.modelData.kind === "text" ? "󰈙" : "󰈔"
+                      color: root.accent
+                      font.family: Style.font.family
+                      font.pixelSize: Style.font.heading
+                    }
+                    Text {
+                      width: parent.width
+                      textFormat: Text.PlainText
+                      text: chip.modelData.name
+                      color: root.fg
+                      font.family: Style.font.family
+                      font.pixelSize: Style.font.caption
+                      elide: Text.ElideMiddle
+                    }
+                  }
+
+                  MouseArea {
+                    id: chipMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: function(mouse) {
+                      if (mouse.button === Qt.RightButton) root.detach(chip.modelData.name)
+                      else root.openAttachment(chip.modelData.path)
+                    }
+                    onEntered: if (root.bar) root.bar.showTooltip(chip, chip.modelData.name + "  ·  click to open, right-click to remove")
+                    onExited: if (root.bar) root.bar.hideTooltip(chip)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Drop files anywhere on the panel to attach them.
+      DropArea {
+        anchors.fill: parent
+        onDropped: function(drop) {
+          if (drop.hasUrls) root.attachFiles(drop.urls)
         }
       }
     }

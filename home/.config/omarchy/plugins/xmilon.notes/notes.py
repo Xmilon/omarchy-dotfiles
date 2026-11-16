@@ -10,19 +10,27 @@ Each page is a plain Markdown file in ~/Notes/Quick/<id>.md with a small header:
     ---
     the note text...
 
+Attachments (images, videos, any file) live in ~/Notes/Quick/media/<id>/.
+
 Commands (all print JSON on stdout):
     list                 every page, pinned first, then newest edit first
     save <json>          create or update a page from {"id","title","pinned","body"}
-    trash <id>           move a page to the desktop trash
+    trash <id>           move a page (and its attachments) to the desktop trash
+    attach <id> <path>   copy a file into the page's attachments
+    paste-image <id>     save the image on the clipboard as an attachment
+    detach <id> <name>   move one attachment to the trash
 """
 
 import json
+import mimetypes
 import os
+import shutil
 import re
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
@@ -30,6 +38,40 @@ NOTES_DIR = Path(os.environ.get("QUICK_NOTES_DIR", Path.home() / "Notes" / "Quic
 ID_RE = re.compile(r"^[a-z0-9-]{1,40}$")
 MAX_TITLE = 120
 MAX_BODY = 100_000
+MAX_ATTACHMENT = 500 * 1024 * 1024
+MEDIA_DIR = NOTES_DIR / "media"
+
+
+def attachments(note_id):
+    folder = MEDIA_DIR / note_id
+    if not folder.is_dir():
+        return []
+    items = []
+    for f in sorted(folder.iterdir(), key=lambda p: p.stat().st_mtime):
+        if not f.is_file() or f.name.startswith("."):
+            continue
+        mime = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+        items.append({
+            "name": f.name,
+            "path": str(f),
+            "kind": mime.split("/")[0],      # image, video, audio, text, application
+            "size": f.stat().st_size,
+        })
+    return items
+
+
+def safe_name(name):
+    name = os.path.basename(str(name)).strip().replace("/", "_")
+    name = "".join(c for c in name if c.isprintable() and c not in '\\:*?"<>|')
+    return name[:120] or "file"
+
+
+def unique_path(folder, name):
+    stem, ext = os.path.splitext(name)
+    candidate, n = folder / name, 2
+    while candidate.exists():
+        candidate, n = folder / f"{stem} ({n}){ext}", n + 1
+    return candidate
 
 
 def now_iso():
@@ -61,6 +103,7 @@ def parse(path):
         "updated": datetime.fromtimestamp(stat.st_mtime).replace(microsecond=0).isoformat(),
         "pinned": meta.get("pinned", "false").lower() == "true",
         "body": body,
+        "attachments": attachments(path.stem),
     }
 
 
@@ -109,7 +152,61 @@ def trash(note_id):
     path = NOTES_DIR / f"{note_id}.md"
     if path.exists():
         subprocess.run(["gio", "trash", "--", str(path)], check=True)
+    media = MEDIA_DIR / note_id
+    if media.is_dir():
+        subprocess.run(["gio", "trash", "--", str(media)], check=True)
     return {"id": note_id, "trashed": True}
+
+
+def check_note(note_id):
+    if not ID_RE.match(note_id):
+        raise ValueError("bad note id")
+    if not (NOTES_DIR / f"{note_id}.md").exists():
+        raise ValueError("save the page before attaching files")
+
+
+def attach(note_id, src):
+    check_note(note_id)
+    src = str(src)
+    if src.startswith("file://"):                 # dragged files arrive as URLs
+        src = urllib.parse.unquote(urllib.parse.urlparse(src).path)
+    src = Path(src).expanduser().resolve()
+    if not src.is_file():
+        raise ValueError(f"not a file: {src}")
+    if src.stat().st_size > MAX_ATTACHMENT:
+        raise ValueError("file is larger than 500 MB")
+    folder = MEDIA_DIR / note_id
+    folder.mkdir(parents=True, exist_ok=True)
+    dst = unique_path(folder, safe_name(src.name))
+    shutil.copy2(src, dst)
+    return attachments(note_id)
+
+
+def paste_image(note_id):
+    check_note(note_id)
+    types = subprocess.run(["wl-paste", "--list-types"], capture_output=True, text=True).stdout.split()
+    image_type = next((t for t in ("image/png", "image/jpeg", "image/webp", "image/gif") if t in types), None)
+    if not image_type:
+        raise ValueError("no image on the clipboard")
+    data = subprocess.run(["wl-paste", "--type", image_type], capture_output=True).stdout
+    if not data or len(data) > MAX_ATTACHMENT:
+        raise ValueError("clipboard image is empty or too large")
+    folder = MEDIA_DIR / note_id
+    folder.mkdir(parents=True, exist_ok=True)
+    ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif"}[image_type]
+    dst = unique_path(folder, "pasted-" + time.strftime("%Y%m%d-%H%M%S") + ext)
+    dst.write_bytes(data)
+    return attachments(note_id)
+
+
+def detach(note_id, name):
+    if not ID_RE.match(note_id):
+        raise ValueError("bad note id")
+    target = MEDIA_DIR / note_id / safe_name(name)
+    if target.parent != MEDIA_DIR / note_id or not target.is_file():
+        raise ValueError("no such attachment")
+    subprocess.run(["gio", "trash", "--", str(target)], check=True)
+    return attachments(note_id)
 
 
 def main(argv):
@@ -120,8 +217,14 @@ def main(argv):
             out = save(argv[2])
         elif len(argv) >= 3 and argv[1] == "trash":
             out = trash(argv[2])
+        elif len(argv) >= 4 and argv[1] == "attach":
+            out = attach(argv[2], argv[3])
+        elif len(argv) >= 3 and argv[1] == "paste-image":
+            out = paste_image(argv[2])
+        elif len(argv) >= 4 and argv[1] == "detach":
+            out = detach(argv[2], argv[3])
         else:
-            raise ValueError("usage: notes.py list | save <json> | trash <id>")
+            raise ValueError("usage: notes.py list | save <json> | trash <id> | attach <id> <path> | paste-image <id> | detach <id> <name>")
         print(json.dumps(out))
         return 0
     except Exception as exc:  # report to the widget instead of crashing silently
