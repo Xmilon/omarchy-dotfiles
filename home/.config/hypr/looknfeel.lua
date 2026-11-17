@@ -133,3 +133,6 @@ hl.plugin.load = function(...)
   end
   return result
 end
+
+-- Spotify desktop-mode player panel (quickshell.spotify plugin): compact floating window.
+o.window({ class = "^org\\.quickshell$", title = "^Spotify player$" }, { float = true, center = true, size = { 680, 420 } })

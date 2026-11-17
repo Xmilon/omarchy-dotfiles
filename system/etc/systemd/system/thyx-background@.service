@@ -1,0 +1,15 @@
+[Unit]
+Description=Sync the Thyx login screen for %i
+
+[Service]
+Type=oneshot
+User=%i
+StateDirectory=thyx-%i
+StateDirectoryMode=0755
+ExecStart=/usr/local/lib/thyx-sync-background
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX
+TimeoutStartSec=45

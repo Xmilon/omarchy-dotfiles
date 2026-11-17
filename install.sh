@@ -102,6 +102,10 @@ while read -r rel; do
 done < <(list "$REPO/paths.txt")
 chmod +x "$HOME/.config/omarchy/hooks/theme-set.d/conflux-icons.sh"
 chmod +x "$HOME/.local/bin/omarchy-app-updates"
+chmod +x "$HOME/.local/bin/xmilon-screensaver-guard"
+if ((ONLY_CONFIGS == 0)); then
+  bash "$REPO/scripts/install-thyx-custom.sh"
+fi
 
 # Iotas starts over D-Bus by default, which can't find Flatpak apps here;
 # a local launcher entry starts it directly.

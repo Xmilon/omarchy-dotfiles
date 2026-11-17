@@ -32,7 +32,7 @@ Thin dividers separate the groups, and the middle group is centred on the screen
 - **Back, play/pause and next** buttons.
 - **Timeline** with elapsed/total time. Drag to seek, scroll in 10-second steps, or use the −10s / +10s buttons. The slider also accepts Left/Right when focused.
 - **Soft cover-art background**, tinted by the current song and only rendered while the popup is open.
-- **Open Spotify** opens the desktop client. **Native · Premium** opens Omarchy Spotify's full library panel from the same music popup; there is no second Spotify widget on the bar. Spotify Free uses the desktop app through MPRIS. The native backend requires Premium and now explains that instead of silently dropping the session.
+- **Open Spotify** opens the desktop client. **Open player** opens the Omarchy Spotify panel, which now drives your signed-in Spotify desktop app (works on Spotify Free): track, seek, volume, library and search. The native librespot backend needs Premium, so it is switched off. There is no second Spotify widget on the bar.
 - **Volume slider** for the player you're listening to. Click the speaker icon to mute; scrolling over the slider works too.
 - **Player list** at the bottom: every app playing media (Spotify, a browser…). Click one to control it.
 - The widget stays in the bar even when nothing is playing, with flat bars.
@@ -47,7 +47,16 @@ The generated AppImage integration owns Sunrise's launcher entry. The older `net
 
 ### Login screen
 
-[Thyx](https://github.com/rccyx/thyx) is installed for SDDM with its default Cinder preset and ambient video. Installation backs up the old SDDM configuration and keeps the desktop session running. Existing autologin settings remain in effect; the theme appears when the login screen is shown. The tested source commit is recorded in `packages/thyx-ref.txt`.
+[Thyx](https://github.com/rccyx/thyx) is installed for SDDM with a custom clean layout (`system/usr/share/sddm/themes/thyx/src/Main.qml`): blurred current wallpaper, big clock and date, round avatar, name, a single password field, and Sleep / Restart / Shut Down buttons.
+
+- **Follows the wallpaper.** `thyx-background@<user>.path` watches `~/.local/state/omarchy/current` and `~/.config/thyx`; on change, `thyx-sync-background` copies the wallpaper (first frame for videos), the avatar and an accent colour into `/var/lib/thyx-<user>/`, where SDDM can read them before login.
+- **Customise** the title in `~/.config/thyx/settings.json` and the avatar by replacing `~/.config/thyx/solo.png`.
+- **Autologin is off** (`/etc/sddm.conf.d/zz-thyx-login.conf`) so the screen shows at every boot. The tested Thyx commit is in `packages/thyx-ref.txt`.
+- Preview without logging out: `sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/thyx`.
+
+### Screensaver
+
+`xmilon-screensaver-guard` (started from `hypr/autostart.lua`) hides the top bar while Omarchy's animated screensaver is up and dismisses it when the mouse moves, as well as on a key press. It only touches the screensaver, never the lock screen.
 
 ### Quick Notes
 
@@ -86,7 +95,7 @@ Click the CPU / temperature / RAM numbers in the bar.
 - **GPU** usage, temperature and power draw, and **VRAM**. The GPU is only checked while this popup is open, so it isn't woken up for nothing.
 - **Memory** and swap, and **disk** space.
 - **Uptime** and load.
-- **Open btop** opens the full system monitor.
+- **Open btop** / **Open nvtop** open the full system or GPU monitor.
 
 ### Wallpapers
 

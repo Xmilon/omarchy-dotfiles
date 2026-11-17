@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# While Omarchy's animated screensaver is up:
+#   - hide the top bar (restored when the screensaver closes)
+#   - dismiss the screensaver when the mouse moves (keys already dismiss it)
+# Runs once per session from hypr/autostart.lua. Only touches the screensaver,
+# never the lock screen, so mouse movement can't bypass the password.
+set -u
+
+CLASS=org.omarchy.screensaver
+RUNTIME=${XDG_RUNTIME_DIR:-/tmp}
+FLAG=$HOME/.local/state/omarchy/toggles/bar-off
+MARK=$RUNTIME/xmilon-screensaver-hid-bar
+SOCKET=$RUNTIME/hypr/${HYPRLAND_INSTANCE_SIGNATURE:-}/.socket2.sock
+MOVE_PX=12      # ignore jitter smaller than this
+SETTLE=1.5      # the launcher warps the cursor while focusing monitors
+
+exec 9>"$RUNTIME/xmilon-screensaver-guard.lock"
+flock -n 9 || exit 0
+
+screensaver_up() {
+  hyprctl clients -j 2>/dev/null | SCREENSAVER=$CLASS jq -e 'any(.[]; .class == env.SCREENSAVER)' >/dev/null 2>&1
+}
+
+hide_bar() {
+  # Leave the bar alone if the user had already hidden it.
+  [[ -e $MARK || -e $FLAG ]] && return
+  touch "$MARK"
+  omarchy-toggle-bar on >/dev/null 2>&1
+}
+
+show_bar() {
+  [[ -e $MARK ]] || return
+  rm -f "$MARK"
+  omarchy-toggle-bar off >/dev/null 2>&1
+}
+
+cursor() {
+  local x y
+  IFS=', ' read -r x y < <(hyprctl cursorpos 2>/dev/null)
+  echo "${x%.*} ${y%.*}"
+}
+
+dismiss() {
+  pkill -x ttfx 2>/dev/null
+  pkill -f '[o]rg.omarchy.screensaver' 2>/dev/null
+}
+
+watch_mouse() {
+  sleep "$SETTLE"
+  screensaver_up || return
+  local x0 y0 x y
+  read -r x0 y0 < <(cursor)
+  [[ -n $x0 && -n $y0 ]] || return
+  while screensaver_up; do
+    sleep 0.15
+    read -r x y < <(cursor)
+    [[ -n $x && -n $y ]] || continue
+    if (( (x - x0) * (x - x0) + (y - y0) * (y - y0) > MOVE_PX * MOVE_PX )); then
+      dismiss
+      return
+    fi
+  done
+}
+
+# Recover from a previous run that died while the screensaver was up.
+screensaver_up || show_bar
+
+watcher=0
+while IFS= read -r line; do
+  case $line in
+    openwindow\>\>*,$CLASS,*)
+      hide_bar
+      if (( watcher == 0 )) || ! kill -0 "$watcher" 2>/dev/null; then
+        watch_mouse &
+        watcher=$!
+      fi
+      ;;
+    closewindow\>\>*)
+      [[ -e $MARK ]] && ! screensaver_up && show_bar
+      ;;
+  esac
+done < <(socat -U - "UNIX-CONNECT:$SOCKET")
+
+show_bar

@@ -219,14 +219,28 @@ Panel {
           }
         }
 
-        Button {
+        RowLayout {
           Layout.fillWidth: true
-          text: "Open btop"
-          iconText: "󰄪"
-          foreground: root.fg
-          onClicked: {
-            root.close()
-            Quickshell.execDetached(["omarchy-launch-or-focus-tui", "btop"])
+          spacing: Style.space(8)
+          Button {
+            Layout.fillWidth: true
+            text: "Open btop"
+            iconText: "󰄪"
+            foreground: root.fg
+            onClicked: {
+              root.close()
+              Quickshell.execDetached(["omarchy-launch-or-focus-tui", "btop"])
+            }
+          }
+          Button {
+            Layout.fillWidth: true
+            text: "Open nvtop"
+            iconText: "󰢮"
+            foreground: root.fg
+            onClicked: {
+              root.close()
+              Quickshell.execDetached(["omarchy-launch-or-focus-tui", "nvtop"])
+            }
           }
         }
       }

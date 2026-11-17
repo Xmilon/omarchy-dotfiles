@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Copy the current wallpaper and palette into SDDM-readable state as the user."""
+import argparse
+import colorsys
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+from PIL import Image, ImageOps
+
+Image.MAX_IMAGE_PIXELS = 40_000_000
+
+
+def hex_color(rgb):
+    return "#" + "".join(f"{max(0, min(255, round(channel))):02x}" for channel in rgb)
+
+
+def palette(image):
+    sample = image.convert("RGB").resize((48, 48))
+    colors = sample.quantize(colors=8).convert("RGB").getcolors(2304)
+    candidates = []
+    for count, rgb in colors:
+        h, light, saturation = colorsys.rgb_to_hls(*(v / 255 for v in rgb))
+        if 0.08 < light < 0.9:
+            candidates.append((count ** 0.4 * saturation, h, saturation))
+    _, hue, saturation = max(candidates, default=(0, 0.6, 0.25))
+    accent = hex_color(v * 255 for v in colorsys.hls_to_rgb(hue, 0.73, min(0.45, max(0.2, saturation))))
+    mean = sample.resize((1, 1)).getpixel((0, 0))
+    card = "#ed" + hex_color(max(9, v * 0.25) for v in mean)[1:]
+    return accent, card
+
+
+def atomic_image(image, target, format):
+    with tempfile.NamedTemporaryFile(dir=target.parent, suffix=target.suffix, delete=False) as stage:
+        path = Path(stage.name)
+    try:
+        image.save(path, format=format)
+        path.chmod(0o644)
+        path.replace(target)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def sync(home, output):
+    source = (home / ".local/state/omarchy/current/background").resolve(strict=True)
+    if not source.is_file() or source.stat().st_size > 256 * 1024 * 1024:
+        raise ValueError("Wallpaper must be a regular media file under 256 MiB")
+    output.mkdir(parents=True, exist_ok=True)
+    settings = home / ".config/thyx/settings.json"
+    values = json.loads(settings.read_text()) if settings.is_file() and settings.stat().st_size < 16384 else {}
+    title = str(values.get("title", "Xmilon"))[:64].replace("\n", " ").replace("\r", " ")
+    with tempfile.TemporaryDirectory(prefix="thyx-background-") as temporary:
+        decoded = source
+        if source.suffix.lower() in (".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi"):
+            decoded = Path(temporary) / "frame.png"
+            subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-protocol_whitelist", "file,pipe",
+                            "-i", str(source), "-frames:v", "1", "-vf", "scale=1920:-2", str(decoded)],
+                           check=True, capture_output=True, timeout=30)
+        with Image.open(decoded) as opened:
+            image = ImageOps.contain(ImageOps.exif_transpose(opened).convert("RGB"), (3840, 2160))
+        accent, card = palette(image)
+        atomic_image(image, output / "background.jpg", "JPEG")
+    avatar = home / ".config/thyx/solo.png"
+    if avatar.is_file():
+        with Image.open(avatar) as image:
+            atomic_image(ImageOps.fit(image.convert("RGB"), (256, 256)), output / "avatar.png", "PNG")
+    fields = {"Background": "backgrounds/xmilon-current.jpg", "Avatar": "avatars/xmilon-current.png",
+              "DisplayName": title, "AccentColor": accent, "CardColor": card,
+              "DateTextColor": "#d4dee7", "TimeTextColor": "#edf4fa",
+              "LoginFieldTextColor": "#edf4fa", "PasswordFieldTextColor": "#edf4fa",
+              "PlaceholderTextColor": "#a2b1bf", "LoginButtonBackgroundColor": accent,
+              "HoverLoginButtonBackgroundColor": "#dce7f0", "LoginButtonTextColor": "#0d1721",
+              "SystemButtonsIconsColor": "#d4dee7", "HoverSystemButtonsIconsColor": accent,
+              "EnvironmentButtonTextColor": "#a2b1bf"}
+    content = "[General]\n" + "".join(f"{key}={json.dumps(value, ensure_ascii=False)}\n" for key, value in fields.items())
+    target = output / "theme.conf.user"
+    stage = output / ".theme.conf.user.new"
+    stage.write_text(content)
+    stage.chmod(0o644)
+    stage.replace(target)
+    print("Synced Thyx wallpaper, avatar and palette.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--home", type=Path, default=Path.home())
+    parser.add_argument("--output", type=Path, default=Path(os.environ.get("STATE_DIRECTORY", "/tmp/thyx-preview")))
+    args = parser.parse_args()
+    sync(args.home, args.output)

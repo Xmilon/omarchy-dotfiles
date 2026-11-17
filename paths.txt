@@ -25,3 +25,8 @@
 .local/share/applications/net.playsunrise.launcher.desktop
 .config/omarchy/plugins/quickshell.spotify/NativeSession.qml
 .config/omarchy/plugins/quickshell.spotify/SessionError.js
+.config/thyx
+.config/omarchy/plugins/quickshell.spotify/manifest.json
+.config/omarchy/plugins/quickshell.spotify/DesktopService.qml
+.config/omarchy/plugins/quickshell.spotify/DesktopPanel.qml
+.local/bin/xmilon-screensaver-guard
