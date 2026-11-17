@@ -697,14 +697,27 @@ Panel {
                 color: root.fg
                 selectionColor: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.4)
                 selectedTextColor: root.fg
-                // A proportional font: Qt saves text set in a monospace font as
-                // Markdown code (`...`), which would wrap every note in backticks.
-                font.family: "Inter Variable"
+                // Shown in JetBrains Mono like the rest of the bar. Qt saves text
+                // set in a monospace font as Markdown code (`...`), so markdown()
+                // reads the text back with a proportional font for a moment.
+                font.family: "JetBrainsMono Nerd Font"
+                property bool switchingFont: false
+                function markdown() {
+                  var family = font.family
+                  switchingFont = true
+                  font.family = "Inter Variable"
+                  var md = text
+                  font.family = family
+                  switchingFont = false
+                  return md
+                }
                 font.pixelSize: Style.font.subtitle + 1
                 background: null
                 onTextChanged: {
-                  if (root.loadingText || text === root.draftBody) return
-                  root.draftBody = text
+                  if (root.loadingText || switchingFont) return
+                  var md = markdown()
+                  if (md === root.draftBody) return
+                  root.draftBody = md
                   if (!root.currentId && !root.creatingNew) {
                     // Typing with no page open starts one automatically.
                     root.creatingNew = true

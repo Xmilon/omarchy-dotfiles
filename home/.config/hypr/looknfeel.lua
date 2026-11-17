@@ -71,7 +71,7 @@ hl.config({
 })
 
 -- Shared window title bar (floating windows): a slim glassy bar with the title
--- in JetBrains Mono, centred, and round red / yellow / green buttons whose symbols show
+-- in Inter, centred, and round red / yellow / green buttons whose symbols show
 -- on hover. Omarchy sets this bar up (hyprbars, in workspace-modes.lua) every
 -- time a workspace starts floating, with a monospace font and plain − □ ×
 -- buttons, so instead of setting options once we adjust its settings as it
@@ -81,7 +81,7 @@ local TITLEBAR = {
   bar_color = "rgba(0d0d11d9)",
   bar_color_inactive = "rgba(0d0d11a6)",
   bar_blur = true,
-  bar_text_font = "JetBrainsMono Nerd Font",
+  bar_text_font = "Inter Variable",
   bar_text_size = 12,
   bar_text_weight = "semibold",
   bar_text_align = "center",
