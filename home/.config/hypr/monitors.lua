@@ -6,6 +6,30 @@
 -- "auto" lets Hyprland pick per display.
 local omarchy_monitor_scale = "auto"
 hl.monitor({ output = "", mode = "1920x1080@180", position = "auto", scale = omarchy_monitor_scale })
+-- Laptop screen (eDP) only when no other monitor is plugged in: off while an
+-- external monitor is connected, back on as soon as none is. Checked when
+-- Hyprland starts and whenever a monitor is plugged in or unplugged.
+function XmilonUpdateLaptopScreen()
+  local external = false
+  for _, m in ipairs(hl.get_monitors()) do
+    if not tostring(m.name):match("^eDP") then external = true end
+  end
+  if external then
+    hl.monitor({ output = "eDP-1", disabled = true })
+  else
+    -- disabled = false has to be said outright, or the earlier "off" sticks.
+    hl.monitor({ output = "eDP-1", disabled = false, mode = "preferred", position = "auto", scale = omarchy_monitor_scale })
+  end
+end
+XmilonUpdateLaptopScreen()
+hl.on("monitor.added", XmilonUpdateLaptopScreen)
+hl.on("monitor.removed", function()
+  XmilonUpdateLaptopScreen()
+  -- Unplugging can take a moment to settle; look again so the laptop screen
+  -- never stays dark with nothing else connected.
+  hl.exec_cmd("sleep 1.5 && hyprctl eval 'XmilonUpdateLaptopScreen()'")
+end)
+
 -- Configure a specific onitor.
 -- hl.monitor({ output = "DP-2", mode = "2560x1440@144", position = "0x0", scale = 1 })
 
