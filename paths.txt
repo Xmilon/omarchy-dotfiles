@@ -21,3 +21,4 @@
 .config/omarchy/backgrounds
 .local/bin/reboot-to-windows
 .config/omarchy/extensions/omarchy-menu.jsonc
+.config/fontconfig/fonts.conf
