@@ -131,6 +131,12 @@ if ((ONLY_CONFIGS == 0)); then
   sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-menu-back-patch" /usr/local/bin/omarchy-menu-back-patch
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-menu-back.hook" /etc/pacman.d/hooks/omarchy-menu-back.hook
   sudo /usr/local/bin/omarchy-menu-back-patch || warn "Menu Back patch skipped (Omarchy's menu changed)"
+
+  say "Lock screen: same look as the login screen (re-applied after Omarchy updates)"
+  sudo install -Dm644 "$REPO/system/usr/share/omarchy/shell/plugins/lock/LockView.qml" /usr/local/share/xmilon/LockView.qml
+  sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-lock-view-install" /usr/local/bin/omarchy-lock-view-install
+  sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-lock-view.hook" /etc/pacman.d/hooks/omarchy-lock-view.hook
+  sudo /usr/local/bin/omarchy-lock-view-install
 fi
 
 # ---------------------------------------------------------------- apply

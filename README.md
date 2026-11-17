@@ -58,6 +58,12 @@ The generated AppImage integration owns Sunrise's launcher entry. The older `net
 - **Autologin is off** (`/etc/sddm.conf.d/zz-thyx-login.conf`) so the screen shows at every boot. The tested Thyx commit is in `packages/thyx-ref.txt`.
 - Preview without logging out: `sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/thyx`.
 
+### Lock screen
+
+**Super+Ctrl+L** locks (the Win+L equivalent). The lock screen uses the same design as the login screen: blurred wallpaper, clock, round avatar, name, password pill and Sleep / Restart / Shut Down. On both screens the clock slides in from the top and the card from the bottom.
+
+It replaces only the visuals of Omarchy's `plugins/lock/LockView.qml`; password checking is untouched. `omarchy-lock-view-install` only swaps the file when Omarchy's version is the exact one it was written against (checked by hash), so an Omarchy update that changes the lock screen keeps the stock one rather than risking a broken lock. A pacman hook re-applies it after updates. Preview without locking: `omarchy-shell lock preview` (click to close). Undo: `sudo pacman -S omarchy`.
+
 ### Screensaver
 
 `xmilon-screensaver-guard` (started from `hypr/autostart.lua`) hides the top bar while Omarchy's animated screensaver is up and dismisses it when the mouse moves, as well as on a key press. It only touches the screensaver, never the lock screen.

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Install the Xmilon lock screen look over Omarchy's LockView.qml.
+# Only replaces the upstream file it was written against (checked by hash), so an
+# Omarchy update that changes the lock screen leaves the stock, working one in place.
+# Undo: sudo pacman -S omarchy
+set -euo pipefail
+target=/usr/share/omarchy/shell/plugins/lock/LockView.qml
+custom=/usr/local/share/xmilon/LockView.qml
+upstream_sha=e5ec598e4dfafc0c6acb3ab8de1c3be810437ae943f6888fdcf1f92a6400876a
+
+[[ -f $custom && -f $target ]] || { echo "Lock view: files missing; skipped" >&2; exit 0; }
+current=$(sha256sum "$target" | cut -d' ' -f1)
+if [[ $current == $(sha256sum "$custom" | cut -d' ' -f1) ]]; then
+  echo "Lock view: already installed"
+elif [[ $current == "$upstream_sha" ]]; then
+  install -m644 "$custom" "$target"
+  echo "Lock view: installed"
+else
+  echo "Lock view: Omarchy's lock screen changed upstream; keeping the stock one" >&2
+fi

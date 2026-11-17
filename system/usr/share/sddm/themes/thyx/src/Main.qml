@@ -70,6 +70,8 @@ Rectangle {
 
     // ------------------------------------------------------------ clock
     Column {
+        id: clock
+        transform: Translate { id: clockSlide }
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.height * 0.13
         spacing: 2 * root.s
@@ -95,6 +97,7 @@ Rectangle {
     // ------------------------------------------------------------ login
     Column {
         id: form
+        transform: Translate { id: formSlide }
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: root.height * 0.08
@@ -229,6 +232,8 @@ Rectangle {
 
     // ------------------------------------------------------------ power
     Row {
+        id: power
+        transform: Translate { id: powerSlide }
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 56 * root.s
@@ -238,7 +243,18 @@ Rectangle {
         PowerButton { label: "Shut Down"; glyph: "󰐥"; shown: root.sddmApi && root.sddmApi.canPowerOff; onActivated: root.sddmApi.powerOff() }
     }
 
-    Component.onCompleted: (root.lastUser === "" ? userField : passwordField).forceActiveFocus()
+    // Clock drops in from the top; the card and power buttons rise from the bottom.
+    ParallelAnimation {
+        id: intro
+        NumberAnimation { target: clockSlide; property: "y"; from: -root.height * 0.35; to: 0; duration: 650; easing.type: Easing.OutCubic }
+        NumberAnimation { targets: [formSlide, powerSlide]; property: "y"; from: root.height * 0.35; to: 0; duration: 650; easing.type: Easing.OutCubic }
+        NumberAnimation { targets: [clock, form, power]; property: "opacity"; from: 0; to: 1; duration: 500; easing.type: Easing.OutQuad }
+    }
+
+    Component.onCompleted: {
+        (root.lastUser === "" ? userField : passwordField).forceActiveFocus()
+        intro.start()
+    }
 
     // ------------------------------------------------------------ components
     component Pill: Rectangle {

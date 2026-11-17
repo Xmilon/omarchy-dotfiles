@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/share/omarchy/shell/plugins/lock/LockView.qml
+
+[Action]
+Description = Re-applying the Xmilon lock screen look...
+When = PostTransaction
+Exec = /usr/local/bin/omarchy-lock-view-install
