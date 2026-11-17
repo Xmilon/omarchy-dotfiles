@@ -11,6 +11,8 @@ import tempfile
 from PIL import Image, ImageOps
 
 Image.MAX_IMAGE_PIXELS = 40_000_000
+# Same list as Omarchy's Util.isVideoPath. GIF/WebP go through PIL (first frame).
+VIDEO = {".mp4", ".m4v", ".mov", ".webm", ".mkv", ".avi"}
 
 
 def hex_color(rgb):
@@ -45,15 +47,17 @@ def atomic_image(image, target, format):
 
 def sync(home, output):
     source = (home / ".local/state/omarchy/current/background").resolve(strict=True)
-    if not source.is_file() or source.stat().st_size > 256 * 1024 * 1024:
-        raise ValueError("Wallpaper must be a regular media file under 256 MiB")
+    video = source.suffix.lower() in VIDEO
+    # Images are decoded whole, so cap them; videos only have one frame read.
+    if not source.is_file() or (not video and source.stat().st_size > 256 * 1024 * 1024):
+        raise ValueError("Wallpaper must be a regular media file (images under 256 MiB)")
     output.mkdir(parents=True, exist_ok=True)
     settings = home / ".config/thyx/settings.json"
     values = json.loads(settings.read_text()) if settings.is_file() and settings.stat().st_size < 16384 else {}
     title = str(values.get("title", "Xmilon"))[:64].replace("\n", " ").replace("\r", " ")
     with tempfile.TemporaryDirectory(prefix="thyx-background-") as temporary:
         decoded = source
-        if source.suffix.lower() in (".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi"):
+        if video:
             decoded = Path(temporary) / "frame.png"
             subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-protocol_whitelist", "file,pipe",
                             "-i", str(source), "-frames:v", "1", "-vf", "scale=1920:-2", str(decoded)],

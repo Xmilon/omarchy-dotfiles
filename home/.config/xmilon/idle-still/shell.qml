@@ -17,7 +17,9 @@ ShellRoot {
   readonly property string home: Quickshell.env("HOME")
   readonly property string backgroundLink: home + "/.local/state/omarchy/current/background"
   property string background: ""
-  readonly property bool isVideo: /\.(mp4|webm|mkv|mov|m4v|avi)$/i.test(background)
+  // Same video list as Omarchy's Util.isVideoPath; GIF/WebP may be animated.
+  readonly property bool isVideo: /\.(mp4|m4v|mov|webm|mkv|avi)$/i.test(background)
+  readonly property bool isAnimated: /\.(gif|webp)$/i.test(background)
   property bool leaving: false
   property real level: 0          // 0 = invisible, 1 = fully shown
   property date now: new Date()
@@ -87,7 +89,7 @@ ShellRoot {
           Image {
             id: still
             anchors.fill: parent
-            visible: !shell.isVideo && shell.background !== ""
+            visible: !shell.isVideo && !shell.isAnimated && shell.background !== ""
             source: visible ? "file://" + shell.background : ""
             fillMode: Image.PreserveAspectCrop
             sourceSize: Qt.size(panel.width, panel.height)
@@ -99,6 +101,15 @@ ShellRoot {
               NumberAnimation { from: 1.0; to: 1.07; duration: 45000; easing.type: Easing.InOutSine }
               NumberAnimation { from: 1.07; to: 1.0; duration: 45000; easing.type: Easing.InOutSine }
             }
+          }
+          AnimatedImage {
+            id: animated
+            anchors.fill: parent
+            visible: shell.isAnimated
+            source: visible ? "file://" + shell.background : ""
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            playing: visible
           }
           Video {
             anchors.fill: parent
