@@ -132,6 +132,11 @@ if ((ONLY_CONFIGS == 0)); then
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-menu-back.hook" /etc/pacman.d/hooks/omarchy-menu-back.hook
   sudo /usr/local/bin/omarchy-menu-back-patch || warn "Menu Back patch skipped (Omarchy's menu changed)"
 
+  say "Bar popups: bouncy open / quick close (re-applied after Omarchy updates)"
+  sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-popup-anim-patch" /usr/local/bin/omarchy-popup-anim-patch
+  sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-popup-anim.hook" /etc/pacman.d/hooks/omarchy-popup-anim.hook
+  sudo /usr/local/bin/omarchy-popup-anim-patch || warn "Popup animation patch skipped (Omarchy changed)"
+
   say "Outfit font (clocks)"
   sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/Outfit.ttf" /usr/local/share/fonts/outfit/Outfit.ttf
   sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/OFL.txt" /usr/local/share/fonts/outfit/OFL.txt

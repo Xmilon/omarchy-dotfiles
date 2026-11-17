@@ -23,6 +23,17 @@ ShellRoot {
   property bool leaving: false
   property real level: 0          // 0 = invisible, 1 = fully shown
   property date now: new Date()
+  property color themeBackground: "#101315"
+
+  // Theme background, for the now-playing glass tint.
+  FileView {
+    path: shell.home + "/.local/state/omarchy/current/theme/colors.toml"
+    printErrors: false
+    onLoaded: {
+      var m = /^\s*background\s*=\s*"(#[0-9a-fA-F]{6})"/m.exec(text())
+      if (m) shell.themeBackground = m[1]
+    }
+  }
 
   Behavior on level { NumberAnimation { duration: shell.leaving ? 700 : 1600; easing.type: Easing.InOutQuad } }
 
@@ -222,6 +233,7 @@ ShellRoot {
           id: nowPlaying
           s: panel.s
           backdrop: backdropLayer
+          themeBackground: shell.themeBackground
           anchors.horizontalCenter: clock.horizontalCenter
           anchors.bottom: clock.top
           anchors.bottomMargin: 34 * panel.s

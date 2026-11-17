@@ -129,16 +129,13 @@ Panel {
       implicitHeight: col.implicitHeight
       anchors.fill: parent
       focus: true
-      // Pops in when the popup opens: slides down, grows and bounces a little.
+      // Open/close animation comes from the shared popup (omarchy-popup-anim-patch); popT stays 1.
       property real popT: 1
       opacity: Math.min(1, popT * 1.4)
       transform: [
         Scale { origin.x: sysBody.width / 2; origin.y: 0; xScale: 0.94 + 0.06 * sysBody.popT; yScale: 0.9 + 0.1 * sysBody.popT },
         Translate { y: -12 * (1 - sysBody.popT) }
       ]
-      NumberAnimation on popT { id: popIn; from: 0; to: 1; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 1.6; running: false }
-      Connections { target: root; function onOpenedChanged() { if (root.opened) popIn.restart() } }
-      Component.onCompleted: if (root.opened) popIn.restart()
       Keys.onEscapePressed: root.close()
 
       ColumnLayout {

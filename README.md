@@ -45,6 +45,10 @@ Selecting an app opens the normal terminal updater and its confirmation prompt. 
 
 The generated AppImage integration owns Sunrise's launcher entry. The older `net.playsunrise.launcher.desktop` is hidden so Sunrise appears once.
 
+### Popup animations
+
+Every bar popup (clock, weather, audio, network, Bluetooth, power, music, notes, system info, tray menus) pops open with a small overshoot and shrinks away on close. `omarchy-popup-anim-patch` changes Omarchy's two shared popup surfaces (`Ui/KeyboardPanel.qml`, `Ui/PopupCard.qml`); a pacman hook re-applies it after updates and it skips itself if upstream changed. Undo: `sudo pacman -S omarchy`.
+
 ### Menu Back button
 
 `omarchy-menu-back-patch` makes Left/Backspace in the Super+Space menu land on the row you came from, and return from pickers opened by a menu row (e.g. *Update → Applications → All installed apps…*). It edits Omarchy's `Menu.qml`; a pacman hook re-applies it after Omarchy updates, and it skips itself if upstream changed that code. Undo with `sudo pacman -S omarchy`.

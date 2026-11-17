@@ -16,6 +16,11 @@ Item {
   property string iconFont: "JetBrainsMono Nerd Font"
   // The layer behind the pill (not containing it), used for the glass blur.
   property Item backdrop: null
+  // Theme background; the glass is tinted with it, darkened a lot more on
+  // light themes so the card always reads as dark smoked glass.
+  property color themeBackground: "#101315"
+  readonly property real themeLuma: 0.2126 * themeBackground.r + 0.7152 * themeBackground.g + 0.0722 * themeBackground.b
+  readonly property color tint: Qt.darker(themeBackground, themeLuma > 0.5 ? 3.4 : 1.2)
 
   readonly property var player: {
     var list = Mpris.players.values
@@ -30,7 +35,7 @@ Item {
   readonly property real length: player && player.lengthSupported ? Math.max(0, Number(player.length) || 0) : 0
   readonly property real position: player && player.positionSupported ? Math.max(0, Number(player.position) || 0) : 0
   readonly property string art: player ? String(player.trackArtUrl || "") : ""
-  readonly property real radius: height / 2
+  readonly property real radius: 20 * s
 
   function timeLabel(value) {
     var total = Math.floor(Math.max(0, value))
@@ -62,7 +67,7 @@ Item {
     offset.y: 10 * root.s
     blur: 36 * root.s
     spread: -4 * root.s
-    color: Qt.rgba(0, 0, 0, 0.38)
+    color: Qt.rgba(0, 0, 0, 0.45)
   }
 
   Item {
@@ -95,27 +100,27 @@ Item {
       blurEnabled: true
       blur: 1.0
       blurMax: 48
-      saturation: 0.45
-      brightness: 0.10
+      saturation: 0.3
+      brightness: -0.12
       maskEnabled: true
       maskSource: pillMask
       maskThresholdMin: 0.5
       maskSpreadAtMin: 1.0
     }
 
-    // Tint and top sheen.
+    // Smoked tint (theme-aware) and a faint top sheen.
     Rectangle {
       anchors.fill: parent
       radius: root.radius
-      color: Qt.rgba(1, 1, 1, 0.07)
+      color: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, 0.7)
     }
     Rectangle {
       anchors.fill: parent
       radius: root.radius
       gradient: Gradient {
-        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-        GradientStop { position: 0.45; color: Qt.rgba(1, 1, 1, 0.02) }
-        GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.05) }
+        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.09) }
+        GradientStop { position: 0.45; color: Qt.rgba(1, 1, 1, 0.0) }
+        GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.03) }
       }
     }
 
@@ -142,9 +147,9 @@ Item {
       visible: false
       layer.enabled: true
       gradient: Gradient {
-        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.85) }
-        GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.12) }
-        GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.45) }
+        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.5) }
+        GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.08) }
+        GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.22) }
       }
     }
   }
@@ -158,7 +163,7 @@ Item {
     height: width
     Rectangle {
       anchors.fill: parent
-      radius: 14 * root.s
+      radius: 12 * root.s
       color: Qt.rgba(1, 1, 1, 0.10)
       Text {
         anchors.centerIn: parent
@@ -179,7 +184,7 @@ Item {
       visible: false
       layer.enabled: true
     }
-    Rectangle { id: coverMask; anchors.fill: parent; radius: 14 * root.s; visible: false; layer.enabled: true }
+    Rectangle { id: coverMask; anchors.fill: parent; radius: 12 * root.s; visible: false; layer.enabled: true }
     MultiEffect {
       anchors.fill: parent
       source: coverImage
@@ -192,7 +197,7 @@ Item {
     }
     Rectangle {
       anchors.fill: parent
-      radius: 14 * root.s
+      radius: 12 * root.s
       color: "transparent"
       border.width: 1
       border.color: Qt.rgba(1, 1, 1, 0.18)

@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/share/omarchy/shell/Ui/KeyboardPanel.qml
+Target = usr/share/omarchy/shell/Ui/PopupCard.qml
+
+[Action]
+Description = Re-applying the bar popup animation patch...
+When = PostTransaction
+Exec = /usr/local/bin/omarchy-popup-anim-patch

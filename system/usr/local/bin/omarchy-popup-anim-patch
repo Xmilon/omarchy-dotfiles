@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Give every Omarchy bar popup the same bouncy open / quick close animation.
+
+Patches the two shared popup surfaces (Ui/KeyboardPanel.qml for panels like
+clock, weather, audio, network, notes, system info; Ui/PopupCard.qml for the
+music popup and tray menus): open pops in with a slight overshoot, close
+shrinks and fades quickly. Matches what the Notes popup used to do on its own.
+
+Idempotent; re-applied after Omarchy updates by a pacman hook. If upstream
+changed a hook point, that file is left alone.
+Undo: sudo pacman -S omarchy
+"""
+import sys
+from pathlib import Path
+
+ROOT = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/omarchy/shell/Ui")
+MARK = "// xmilon-popup-anim-patch"
+
+OLD_ANIM = """      NumberAnimation {
+        duration: Style.duration(showing.targetValue > 0 ? 180 : 120)
+        easing.type: Easing.Bezier
+        easing.bezierCurve: Style.easeOut
+      }"""
+NEW_ANIM = """      NumberAnimation { """ + MARK + """
+        duration: Style.duration(showing.targetValue > 0 ? 380 : 200)
+        easing.type: showing.targetValue > 0 ? Easing.OutBack : Easing.InCubic
+        easing.overshoot: 1.6
+      }"""
+
+FILES = {
+    "KeyboardPanel.qml": [
+        (OLD_ANIM, NEW_ANIM),
+        ("""    opacity: shown
+    transform: Scale {
+      origin.x: root.growOrigin.x
+      origin.y: root.growOrigin.y
+      xScale: 0.97 + 0.03 * card.shown
+      yScale: 0.97 + 0.03 * card.shown
+    }""",
+         """    opacity: Math.min(1, shown * 1.4)
+    transform: Scale {
+      origin.x: root.growOrigin.x
+      origin.y: root.growOrigin.y
+      xScale: 0.94 + 0.06 * card.shown
+      yScale: 0.9 + 0.1 * card.shown
+    }"""),
+    ],
+    "PopupCard.qml": [
+        (OLD_ANIM, NEW_ANIM),
+        ("""    opacity: shown
+    scale: 0.97 + 0.03 * shown
+""",
+         """    opacity: Math.min(1, shown * 1.4)
+    scale: 0.92 + 0.08 * shown
+"""),
+    ],
+}
+
+
+def patch(path, edits):
+    text = path.read_text()
+    if MARK in text:
+        return "already applied"
+    if any(text.count(old) != 1 for old, _ in edits):
+        return "upstream changed; skipped"
+    for old, new in edits:
+        text = text.replace(old, new)
+    path.write_text(text)
+    return "applied"
+
+
+def main():
+    status = 0
+    for name, edits in FILES.items():
+        result = patch(ROOT / name, edits)
+        print(f"Popup animation patch: {name}: {result}")
+        if result.startswith("upstream"):
+            status = 1
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main())

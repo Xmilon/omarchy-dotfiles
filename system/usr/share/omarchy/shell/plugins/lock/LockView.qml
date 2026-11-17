@@ -200,7 +200,7 @@ Item {
       height: nowPlaying.height
       opacity: clock.opacity
       transform: Translate { y: clockSlide.y }
-      NowPlaying { id: nowPlaying; s: root.s; iconFont: root.iconFont; backdrop: backdropLayer }
+      NowPlaying { id: nowPlaying; s: root.s; iconFont: root.iconFont; backdrop: backdropLayer; themeBackground: Commons.Color.background }
     }
 
     // -------------------------------------------------------------- card
