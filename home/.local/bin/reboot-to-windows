@@ -1,0 +1,17 @@
+#!/bin/bash
+# Restart straight into Windows, once. The next restart after that goes back
+# to Omarchy as usual. Uses the UEFI "BootNext" setting, so it asks for your
+# password (it changes a firmware setting for one boot).
+
+entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\? *Windows Boot Manager.*/\1/p' | head -n1)
+
+if [[ -z $entry ]]; then
+  notify-send -u critical "Reboot to Windows" "Couldn't find the Windows Boot Manager entry."
+  exit 1
+fi
+
+if pkexec efibootmgr --bootnext "$entry" >/dev/null; then
+  omarchy-system reboot
+else
+  notify-send "Reboot to Windows" "Cancelled."
+fi

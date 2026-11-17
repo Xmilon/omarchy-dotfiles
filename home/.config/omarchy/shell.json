@@ -1,6 +1,6 @@
 {
   "bar": {
-    "background": "none",
+    "background": "opaque",
     "layout": {
       "center": [
         {
