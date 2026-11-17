@@ -45,6 +45,10 @@ Selecting an app opens the normal terminal updater and its confirmation prompt. 
 
 The generated AppImage integration owns Sunrise's launcher entry. The older `net.playsunrise.launcher.desktop` is hidden so Sunrise appears once.
 
+### Menu Back button
+
+`omarchy-menu-back-patch` makes Left/Backspace in the Super+Space menu land on the row you came from, and return from pickers opened by a menu row (e.g. *Update → Applications → All installed apps…*). It edits Omarchy's `Menu.qml`; a pacman hook re-applies it after Omarchy updates, and it skips itself if upstream changed that code. Undo with `sudo pacman -S omarchy`.
+
 ### Login screen
 
 [Thyx](https://github.com/rccyx/thyx) is installed for SDDM with a custom clean layout (`system/usr/share/sddm/themes/thyx/src/Main.qml`): blurred current wallpaper, big clock and date, round avatar, name, a single password field, and Sleep / Restart / Shut Down buttons.

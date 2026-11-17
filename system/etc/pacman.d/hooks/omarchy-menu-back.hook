@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/share/omarchy/shell/plugins/menu/Menu.qml
+
+[Action]
+Description = Re-applying the Omarchy menu Back patch...
+When = PostTransaction
+Exec = /usr/local/bin/omarchy-menu-back-patch

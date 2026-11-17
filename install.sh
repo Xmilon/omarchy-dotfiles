@@ -126,6 +126,13 @@ if ((ONLY_CONFIGS == 0)) && command -v spotify >/dev/null; then
   sudo /usr/local/bin/spotx-reapply || warn "SpotX did not apply; run spotx-reapply later"
 fi
 
+if ((ONLY_CONFIGS == 0)); then
+  say "Super+Space menu: Back returns to the row you came from (re-applied after Omarchy updates)"
+  sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-menu-back-patch" /usr/local/bin/omarchy-menu-back-patch
+  sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-menu-back.hook" /etc/pacman.d/hooks/omarchy-menu-back.hook
+  sudo /usr/local/bin/omarchy-menu-back-patch || warn "Menu Back patch skipped (Omarchy's menu changed)"
+fi
+
 # ---------------------------------------------------------------- apply
 say "Applying"
 if [[ -s $REPO/packages/current-theme.txt ]]; then

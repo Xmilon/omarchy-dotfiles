@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Patch Omarchy's Super+Space menu so Back behaves like you'd expect.
+
+1. Going back to a parent menu puts the cursor on the submenu you came from,
+   instead of the first row.
+2. Back (Left / Backspace) in a picker that a menu row opened, such as
+   Update > Applications > All installed apps..., returns to that menu row
+   instead of doing nothing.
+
+Idempotent. Re-run after Omarchy updates (the pacman hook does this). If the
+upstream code changed so a hook point is missing, nothing is written.
+Undo: sudo pacman -S omarchy (reinstalls the stock file).
+"""
+import sys
+from pathlib import Path
+
+TARGET = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/omarchy/shell/plugins/menu/Menu.qml")
+MARK = "// xmilon-menu-back-patch"
+
+EDITS = [
+    # Remember which row launched an action, so a picker it opens can go back.
+    ("""  function applySelected(id, action) {
+    if (!id) { cancel(); return }
+""",
+     """  function applySelected(id, action) {
+    if (!id) { cancel(); return }
+    root.xmReturn = { menu: root.activeMenu, stack: root.navStack, item: id, at: Date.now() } """ + MARK + """
+"""),
+    # A picker opened within a few seconds of that action inherits it.
+    ("""  function openDmenu(payload) {
+    requestSerial += 1
+""",
+     """  function openDmenu(payload) {
+    root.xmDmenuReturn = root.xmReturn && Date.now() - root.xmReturn.at < 8000 ? root.xmReturn : null """ + MARK + """
+    root.xmReturn = null
+    requestSerial += 1
+"""),
+    # Back: restore the cursor onto the submenu row we came from.
+    ("""  function goBack() {
+    if (root.activeMenu === "root") return false
+
+    if (root.navStack.length > 0) {
+      var previous = root.navStack[root.navStack.length - 1]
+      root.navStack = root.navStack.slice(0, root.navStack.length - 1)
+      root.setActiveMenu(previous, false)
+      return true
+    }
+
+    var active = root.item(root.activeMenu)
+    root.setActiveMenu((active && active.parent) ? active.parent : "root", false)
+    return true
+  }
+""",
+     """  property var xmReturn: null """ + MARK + """
+  property var xmDmenuReturn: null
+
+  function xmSelectRow(id) {
+    for (var i = 0; i < displayModel.count; ++i) {
+      var row = displayModel.get(i)
+      if (row.itemId === id || row.target === id) {
+        root.selectedIndex = i
+        root.cursorActive = true
+        Qt.callLater(root.revealCursor)
+        return true
+      }
+    }
+    return false
+  }
+
+  // Back out of a picker to the menu row that opened it.
+  function xmBackFromDmenu() {
+    var ctx = root.xmDmenuReturn
+    if (!root.dmenuActive || !ctx) return false
+    root.xmDmenuReturn = null
+    root.finishRequest(null)
+    root.openExistingMenu(ctx.menu)
+    root.navStack = ctx.stack || []
+    root.xmSelectRow(ctx.item)
+    return true
+  }
+
+  function goBack() {
+    if (root.xmBackFromDmenu()) return true
+    if (root.activeMenu === "root") return false
+    var from = root.activeMenu
+
+    if (root.navStack.length > 0) {
+      var previous = root.navStack[root.navStack.length - 1]
+      root.navStack = root.navStack.slice(0, root.navStack.length - 1)
+      root.setActiveMenu(previous, false)
+      root.xmSelectRow(from)
+      return true
+    }
+
+    var active = root.item(root.activeMenu)
+    root.setActiveMenu((active && active.parent) ? active.parent : "root", false)
+    root.xmSelectRow(from)
+    return true
+  }
+"""),
+]
+
+
+def main():
+    text = TARGET.read_text()
+    if MARK in text:
+        print("Omarchy menu back patch: already applied")
+        return 0
+    for old, _ in EDITS:
+        if text.count(old) != 1:
+            print("Omarchy menu back patch: upstream Menu.qml changed; not patching", file=sys.stderr)
+            return 1
+    for old, new in EDITS:
+        text = text.replace(old, new)
+    TARGET.write_text(text)
+    print("Omarchy menu back patch: applied")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
