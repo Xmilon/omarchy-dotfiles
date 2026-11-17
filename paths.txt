@@ -30,3 +30,4 @@
 .config/omarchy/plugins/quickshell.spotify/DesktopService.qml
 .config/omarchy/plugins/quickshell.spotify/DesktopPanel.qml
 .local/bin/xmilon-screensaver-guard
+.config/xmilon/idle-still

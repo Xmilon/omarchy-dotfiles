@@ -66,7 +66,13 @@ It replaces only the visuals of Omarchy's `plugins/lock/LockView.qml`; password 
 
 ### Screensaver
 
-`xmilon-screensaver-guard` (started from `hypr/autostart.lua`) hides the top bar while Omarchy's animated screensaver is up and dismisses it when the mouse moves, as well as on a key press. It only touches the screensaver, never the lock screen.
+**Never locks or turns the screen off on idle** (`idle.lock` is `0` in `shell.json`); nothing suspends or logs out, and apps keep running. After 2½ minutes idle the animated screensaver starts:
+
+- The top bar is hidden while it's up.
+- After a minute of animation it fades into a still screen: your current wallpaper (videos play, muted) at low brightness, with a large clock, a seconds line and the date. The clock drifts a little every minute so nothing burns in. Only the screensaver's own animation is paused underneath.
+- Moving the mouse or pressing a key fades it out and returns to the desktop.
+
+`xmilon-screensaver-guard` (started from `hypr/autostart.lua`) drives this; the still screen is a small Quickshell config in `~/.config/xmilon/idle-still` (`XMILON_STILL_AFTER` changes the 60 s delay). It never touches the lock screen.
 
 ### Quick Notes
 

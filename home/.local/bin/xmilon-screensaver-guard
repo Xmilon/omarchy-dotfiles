@@ -2,6 +2,8 @@
 # While Omarchy's animated screensaver is up:
 #   - hide the top bar (restored when the screensaver closes)
 #   - dismiss the screensaver when the mouse moves (keys already dismiss it)
+#   - after STILL_AFTER seconds, fade into a still screen (dim wallpaper +
+#     clock, ~/.config/xmilon/idle-still) and pause the animation underneath
 # Runs once per session from hypr/autostart.lua. Only touches the screensaver,
 # never the lock screen, so mouse movement can't bypass the password.
 set -u
@@ -13,6 +15,8 @@ MARK=$RUNTIME/xmilon-screensaver-hid-bar
 SOCKET=$RUNTIME/hypr/${HYPRLAND_INSTANCE_SIGNATURE:-}/.socket2.sock
 MOVE_PX=12      # ignore jitter smaller than this
 SETTLE=1.5      # the launcher warps the cursor while focusing monitors
+STILL_AFTER=${XMILON_STILL_AFTER:-60}  # seconds of animation before the still screen
+STILL=$HOME/.config/xmilon/idle-still
 
 exec 9>"$RUNTIME/xmilon-screensaver-guard.lock"
 flock -n 9 || exit 0
@@ -40,19 +44,36 @@ cursor() {
   echo "${x%.*} ${y%.*}"
 }
 
+still_dismiss() {
+  qs ipc -p "$STILL" call still dismiss >/dev/null 2>&1
+}
+
 dismiss() {
+  still_dismiss
+  pkill -CONT -x ttfx 2>/dev/null   # a paused ttfx would hold its SIGTERM
   pkill -x ttfx 2>/dev/null
   pkill -f '[o]rg.omarchy.screensaver' 2>/dev/null
+}
+
+start_still() {
+  [[ -f $STILL/shell.qml ]] || return
+  setsid -f quickshell -n -p "$STILL" >/dev/null 2>&1
+  # Pause the animation once the still screen has faded in over it.
+  ( sleep 2.5; screensaver_up && pkill -STOP -x ttfx ) &
 }
 
 watch_mouse() {
   sleep "$SETTLE"
   screensaver_up || return
-  local x0 y0 x y
+  local x0 y0 x y started=$SECONDS still=0
   read -r x0 y0 < <(cursor)
   [[ -n $x0 && -n $y0 ]] || return
   while screensaver_up; do
     sleep 0.15
+    if (( !still && SECONDS - started >= STILL_AFTER )); then
+      still=1
+      start_still
+    fi
     read -r x y < <(cursor)
     [[ -n $x && -n $y ]] || continue
     if (( (x - x0) * (x - x0) + (y - y0) * (y - y0) > MOVE_PX * MOVE_PX )); then
@@ -76,7 +97,12 @@ while IFS= read -r line; do
       fi
       ;;
     closewindow\>\>*)
-      [[ -e $MARK ]] && ! screensaver_up && show_bar
+      if [[ -e $MARK ]] || pgrep -f "quickshell -n -p $STILL" >/dev/null; then
+        if ! screensaver_up; then
+          still_dismiss
+          show_bar
+        fi
+      fi
       ;;
   esac
 done < <(socat -U - "UNIX-CONNECT:$SOCKET")
