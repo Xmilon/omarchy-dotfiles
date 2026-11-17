@@ -178,6 +178,16 @@ BarWidget {
       id: column
       anchors.fill: parent
       spacing: Style.space(10)
+      // Pops in when the popup opens: slides down, grows and bounces a little.
+      property real popT: 1
+      opacity: Math.min(1, popT * 1.4)
+      transform: [
+        Scale { origin.x: column.width / 2; origin.y: 0; xScale: 0.94 + 0.06 * column.popT; yScale: 0.9 + 0.1 * column.popT },
+        Translate { y: -12 * (1 - column.popT) }
+      ]
+      NumberAnimation on popT { id: popIn; from: 0; to: 1; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 1.6; running: false }
+      Connections { target: root; function onPopupOpenChanged() { if (root.popupOpen) popIn.restart() } }
+      Component.onCompleted: if (root.popupOpen) popIn.restart()
 
       Row {
         spacing: Style.space(10)

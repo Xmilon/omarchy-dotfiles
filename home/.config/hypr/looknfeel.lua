@@ -60,6 +60,12 @@
 hl.config({ binds = { scroll_event_delay = 60 } })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 2.5, bezier = "easeOutQuint", style = "slide" })
 
+-- Menus, the app launcher and other pop-up layers grow in with a small bounce
+-- instead of only fading.
+hl.curve("popBounce", { type = "bezier", points = { { 0.34, 1.45 }, { 0.64, 1 } } })
+hl.animation({ leaf = "layersIn", enabled = true, speed = 3.2, bezier = "popBounce", style = "popin 88%" })
+hl.animation({ leaf = "layersOut", enabled = true, speed = 1.6, bezier = "easeOutQuint", style = "popin 94%" })
+
 -- Files: keep the window opaque to Hyprland; its see-through panels come from
 -- ~/.config/gtk-4.0/gtk.css, so text stays sharp while the blur shows behind.
 o.transparent_window("org\\.gnome\\.Nautilus", "1.0 0.95")

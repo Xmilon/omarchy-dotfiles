@@ -1,20 +1,13 @@
 import QtQuick
 
-// A thin vertical line that separates neighbouring bar widgets.
+// A gap between bar widgets. With the islands module (islands.qml) each gap
+// ends one rounded island and starts the next.
+// Settings: "size" sets its width in px (default 14).
 Item {
   property var bar
   property string moduleName
   property var settings
 
-  implicitWidth: 17
+  implicitWidth: settings && settings.size !== undefined ? settings.size : 14
   implicitHeight: bar ? bar.barSize : 26
-
-  Rectangle {
-    anchors.centerIn: parent
-    width: 1
-    height: Math.round(parent.height * 0.45)
-    radius: 1
-    color: bar ? bar.foreground : "white"
-    opacity: 0.3
-  }
 }

@@ -1,6 +1,6 @@
 {
   "bar": {
-    "background": "opaque",
+    "background": "none",
     "layout": {
       "center": [
         {
@@ -80,6 +80,17 @@
       "centerEnd": [],
       "left": [
         {
+          "id": "islands",
+          "source": "~/.config/omarchy/bar/modules/islands.qml",
+          "type": "qml"
+        },
+        {
+          "id": "divider0",
+          "size": 8,
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
+        },
+        {
           "id": "omarchy.menu"
         },
         {
@@ -118,6 +129,12 @@
         },
         {
           "id": "omarchy.power"
+        },
+        {
+          "id": "divider7",
+          "size": 8,
+          "source": "~/.config/omarchy/bar/modules/divider.qml",
+          "type": "qml"
         }
       ],
       "tray": [

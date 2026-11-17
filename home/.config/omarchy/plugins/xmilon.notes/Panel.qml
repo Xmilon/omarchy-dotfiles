@@ -414,6 +414,15 @@ Panel {
       id: body
       implicitHeight: Style.space(470)
       anchors.fill: parent
+      // Pops in when the popup opens: slides down, grows and bounces a little.
+      property real popT: 1
+      opacity: Math.min(1, popT * 1.4)
+      transform: [
+        Scale { origin.x: body.width / 2; origin.y: 0; xScale: 0.94 + 0.06 * body.popT; yScale: 0.9 + 0.1 * body.popT },
+        Translate { y: -12 * (1 - body.popT) }
+      ]
+      NumberAnimation on popT { id: popIn; from: 0; to: 1; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 1.6; running: false }
+      Connections { target: root; function onOpenedChanged() { if (root.opened) popIn.restart() } }
       Keys.onEscapePressed: root.close()
       property alias editor: bodyArea
       property Item clipboardSearch: clipView.searchField
@@ -433,7 +442,7 @@ Panel {
         bodyArea.text = root.displayMarkdown(root.draftBody)
         root.loadingText = false
       }
-      Component.onCompleted: loadBody()
+      Component.onCompleted: { loadBody(); if (root.opened) popIn.restart() }
       Connections {
         target: root
         function onNoteLoaded() { body.loadBody() }
