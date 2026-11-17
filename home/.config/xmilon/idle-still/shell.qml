@@ -82,6 +82,11 @@ ShellRoot {
 
         Rectangle { anchors.fill: parent; color: "black" }
 
+        // Everything behind the clock; the now-playing glass samples it.
+        Item {
+          id: backdropLayer
+          anchors.fill: parent
+
         // Wallpaper with a very slow drift so it feels alive (and spares OLEDs).
         Item {
           anchors.fill: parent
@@ -132,6 +137,8 @@ ShellRoot {
           }
         }
 
+        }
+
         // Clock, drifting a little each minute so nothing burns in.
         Column {
           id: clock
@@ -140,6 +147,8 @@ ShellRoot {
           property real driftY: 0
           x: (parent.width - width) / 2 + driftX
           y: (parent.height - height) / 2 - parent.height * 0.04 + driftY
+             + (nowPlaying.hasTrack ? parent.height * 0.06 : 0)
+          Behavior on y { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
           Behavior on driftX { NumberAnimation { duration: 4000; easing.type: Easing.InOutSine } }
           Behavior on driftY { NumberAnimation { duration: 4000; easing.type: Easing.InOutSine } }
           Timer {
@@ -156,16 +165,16 @@ ShellRoot {
             Text {
               text: Qt.formatDateTime(shell.now, "HH")
               color: "#f4f6f8"
-              font.family: "Plus Jakarta Sans"
-              font.pixelSize: 168 * panel.s
-              font.weight: Font.ExtraLight
+              font.family: "Outfit"
+              font.pixelSize: 176 * panel.s
+              font.weight: Font.Thin
             }
             Text {
               text: ":"
               color: "#f4f6f8"
-              font.family: "Plus Jakarta Sans"
-              font.pixelSize: 168 * panel.s
-              font.weight: Font.ExtraLight
+              font.family: "Outfit"
+              font.pixelSize: 176 * panel.s
+              font.weight: Font.Thin
               // Colon breathes once a second.
               SequentialAnimation on opacity {
                 loops: Animation.Infinite
@@ -176,9 +185,9 @@ ShellRoot {
             Text {
               text: Qt.formatDateTime(shell.now, "mm")
               color: "#f4f6f8"
-              font.family: "Plus Jakarta Sans"
-              font.pixelSize: 168 * panel.s
-              font.weight: Font.ExtraLight
+              font.family: "Outfit"
+              font.pixelSize: 176 * panel.s
+              font.weight: Font.Thin
             }
           }
 
@@ -202,10 +211,20 @@ ShellRoot {
             topPadding: 10 * panel.s
             text: Qt.formatDateTime(shell.now, "dddd · d MMMM").toUpperCase()
             color: Qt.rgba(1, 1, 1, 0.62)
-            font.family: "Plus Jakarta Sans"
+            font.family: "Outfit"
             font.pixelSize: 15 * panel.s
             font.letterSpacing: 5 * panel.s
           }
+        }
+
+        // Spotify now playing, above the clock (drifts with it).
+        NowPlaying {
+          id: nowPlaying
+          s: panel.s
+          backdrop: backdropLayer
+          anchors.horizontalCenter: clock.horizontalCenter
+          anchors.bottom: clock.top
+          anchors.bottomMargin: 34 * panel.s
         }
 
         // Mouse: ignore the first sample (cursor already there), then any

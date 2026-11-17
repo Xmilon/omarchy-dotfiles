@@ -71,6 +71,7 @@ It replaces only the visuals of Omarchy's `plugins/lock/LockView.qml`; password 
 - The top bar is hidden while it's up.
 - After a minute of animation it fades into a still screen: your current wallpaper (videos play, muted) at low brightness, with a large clock, a seconds line and the date. The clock drifts a little every minute so nothing burns in. Only the screensaver's own animation is paused underneath.
 - Moving the mouse or pressing a key fades it out and returns to the desktop.
+- **Now playing:** while Spotify has a track, a liquid-glass pill above the clock (here and on the lock screen) shows the cover, title, artist, progress and an equalizer. The glass blurs whatever is behind it, live. Clocks use the Outfit font (installed system-wide from `system/usr/local/share/fonts/outfit`, OFL).
 
 `xmilon-screensaver-guard` (started from `hypr/autostart.lua`) drives this; the still screen is a small Quickshell config in `~/.config/xmilon/idle-still` (`XMILON_STILL_AFTER` changes the 60 s delay). It never touches the lock screen.
 

@@ -43,6 +43,7 @@ Item {
   readonly property color fg: "#f2f5f8"
   readonly property color dim: "#c3ccd5"
   readonly property string fontFamily: "Plus Jakarta Sans"
+  readonly property string clockFont: "Outfit"
   readonly property string iconFont: "JetBrainsMono Nerd Font"
   readonly property string home: Quickshell.env("HOME")
   property string displayName: "Xmilon"
@@ -123,6 +124,11 @@ Item {
     anchors.fill: parent
     color: Commons.Color.background
 
+    // Everything behind the UI; the now-playing glass samples this layer.
+    Item {
+      id: backdropLayer
+      anchors.fill: parent
+
     BackgroundMedia {
       id: wallpaper
       objectName: "lockWallpaper"
@@ -146,6 +152,7 @@ Item {
       blurMultiplier: 1.0
     }
     Rectangle { anchors.fill: parent; color: "#000000"; opacity: 0.28 }
+    }
 
     MouseArea {
       anchors.fill: parent
@@ -159,25 +166,41 @@ Item {
       id: clock
       transform: Translate { id: clockSlide }
       anchors.horizontalCenter: parent.horizontalCenter
-      y: root.height * 0.13
+      // Eases down to make room when the now-playing pill is shown above.
+      y: root.height * 0.13 + (nowPlaying.hasTrack ? root.height * 0.065 : 0)
+      Behavior on y { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
       spacing: 2 * root.s
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
         textFormat: Text.PlainText
         text: Qt.formatDateTime(root.now, "HH:mm")
         color: root.fg
-        font.family: root.fontFamily
-        font.pixelSize: 112 * root.s
-        font.weight: Font.Light
+        font.family: root.clockFont
+        font.pixelSize: 124 * root.s
+        font.weight: Font.Thin
+        font.letterSpacing: 2 * root.s
       }
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
         textFormat: Text.PlainText
-        text: Qt.formatDateTime(root.now, "dddd, d MMMM")
+        text: Qt.formatDateTime(root.now, "dddd, d MMMM").toUpperCase()
         color: root.dim
-        font.family: root.fontFamily
-        font.pixelSize: 20 * root.s
+        font.family: root.clockFont
+        font.pixelSize: 15 * root.s
+        font.letterSpacing: 4 * root.s
       }
+    }
+
+    // Spotify now playing, above the clock; moves and fades with it.
+    Item {
+      anchors.bottom: clock.top
+      anchors.bottomMargin: 26 * root.s
+      anchors.horizontalCenter: parent.horizontalCenter
+      width: nowPlaying.width
+      height: nowPlaying.height
+      opacity: clock.opacity
+      transform: Translate { y: clockSlide.y }
+      NowPlaying { id: nowPlaying; s: root.s; iconFont: root.iconFont; backdrop: backdropLayer }
     }
 
     // -------------------------------------------------------------- card

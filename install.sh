@@ -132,8 +132,14 @@ if ((ONLY_CONFIGS == 0)); then
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-menu-back.hook" /etc/pacman.d/hooks/omarchy-menu-back.hook
   sudo /usr/local/bin/omarchy-menu-back-patch || warn "Menu Back patch skipped (Omarchy's menu changed)"
 
+  say "Outfit font (clocks)"
+  sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/Outfit.ttf" /usr/local/share/fonts/outfit/Outfit.ttf
+  sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/OFL.txt" /usr/local/share/fonts/outfit/OFL.txt
+  sudo fc-cache -f /usr/local/share/fonts >/dev/null
+
   say "Lock screen: same look as the login screen (re-applied after Omarchy updates)"
   sudo install -Dm644 "$REPO/system/usr/share/omarchy/shell/plugins/lock/LockView.qml" /usr/local/share/xmilon/LockView.qml
+  sudo install -Dm644 "$REPO/system/usr/share/omarchy/shell/plugins/lock/NowPlaying.qml" /usr/local/share/xmilon/NowPlaying.qml
   sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-lock-view-install" /usr/local/bin/omarchy-lock-view-install
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-lock-view.hook" /etc/pacman.d/hooks/omarchy-lock-view.hook
   sudo /usr/local/bin/omarchy-lock-view-install
