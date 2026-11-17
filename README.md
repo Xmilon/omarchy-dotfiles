@@ -30,9 +30,24 @@ Thin dividers separate the groups, and the middle group is centred on the screen
 - **Cover art**, title, artist and album at the top.
 - **Wave**: follows the music in real time and gets bigger or smaller with the volume. When the music stops it fades out instead of cutting off.
 - **Back, play/pause and next** buttons.
+- **Timeline** with elapsed/total time. Drag to seek, scroll in 10-second steps, or use the −10s / +10s buttons. The slider also accepts Left/Right when focused.
+- **Soft cover-art background**, tinted by the current song and only rendered while the popup is open.
+- **Open Spotify** opens the desktop client. **Native · Premium** opens Omarchy Spotify's full library panel from the same music popup; there is no second Spotify widget on the bar. Spotify Free uses the desktop app through MPRIS. The native backend requires Premium and now explains that instead of silently dropping the session.
 - **Volume slider** for the player you're listening to. Click the speaker icon to mute; scrolling over the slider works too.
 - **Player list** at the bottom: every app playing media (Spotify, a browser…). Click one to control it.
 - The widget stays in the bar even when nothing is playing, with flat bars.
+
+### App updates
+
+**Super+Space → Update → Applications** has Discord and T3 Code shortcuts plus **All installed apps…**, a searchable list rebuilt from installed packages and Flatpaks each time it opens. New packages appear automatically. It also offers shell-plugin and uv-tool updates.
+
+Selecting an app opens the normal terminal updater and its confirmation prompt. Arch packages upgrade with system dependencies (`yay -Syu`), avoiding partial upgrades. Flatpaks update independently. AppImages without an update mechanism still need their publisher's download; the menu never executes commands taken from desktop launcher files.
+
+The generated AppImage integration owns Sunrise's launcher entry. The older `net.playsunrise.launcher.desktop` is hidden so Sunrise appears once.
+
+### Login screen
+
+[Thyx](https://github.com/rccyx/thyx) is installed for SDDM with its default Cinder preset and ambient video. Installation backs up the old SDDM configuration and keeps the desktop session running. Existing autologin settings remain in effect; the theme appears when the login screen is shown. The tested source commit is recorded in `packages/thyx-ref.txt`.
 
 ### Quick Notes
 
@@ -113,6 +128,17 @@ git add -A && git commit -m "Update setup" && git push
 
 To track a new file, add its path (relative to your home folder) to `paths.txt`.
 
+Third-party shell plugins are recorded in `packages/plugins.txt` and installed before local overrides. The Spotify override improves native-session failure reporting and contains no credentials. Account sessions, tokens, caches and binaries are not collected.
+
+Focused checks for the media and update-menu changes:
+
+```bash
+python tests/test-desktop.py
+XDG_RUNTIME_DIR=/run/user/$(id -u) python tests/test-native-session.py
+node tests/test-media.cjs
+home/.local/bin/omarchy-app-updates --plan pkg:t3code-bin
+```
+
 ## What's in it (by file)
 
 | Area | What |
@@ -138,7 +164,7 @@ Packages are listed in `packages/` (official repos, AUR, Flathub, themes).
 
 These aren't automated:
 
-- **AppImages** in `~/Applications`: Liner (from github.com/tryliner/desktop) and spotifast.
+- **AppImages** in `~/Applications`: Liner (from github.com/tryliner/desktop), spotifast and Sunrise Launcher.
   Install each with `appimage-integrator install <file>` or right-click → AppImage → Install.
 - **Artcraft**: install from its own launcher download (it isn't on Flathub).
 - **Windows drive / migration data**: not part of this repo.

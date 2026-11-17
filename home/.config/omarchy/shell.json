@@ -110,6 +110,9 @@
           "id": "omarchy.tray"
         },
         {
+          "id": "io.github.fasi96.liquid-glass"
+        },
+        {
           "id": "omarchy.keyboard-layout"
         },
         {
@@ -172,6 +175,10 @@
     "lock": 300,
     "screensaver": 150
   },
-  "plugins": [],
+  "plugins": [
+    {
+      "id": "quickshell.spotify"
+    }
+  ],
   "version": 1
 }

@@ -66,6 +66,26 @@ if ((ONLY_CONFIGS == 0)); then
   fi
 fi
 
+# Install the complete upstream plugins before copying our small local overrides.
+if ((ONLY_CONFIGS == 0)); then
+  while IFS='|' read -r plugin_id plugin_url plugin_ref; do
+    plugin_dir="$HOME/.config/omarchy/plugins/$plugin_id"
+    if [[ ! -d $plugin_dir ]]; then
+      omarchy plugin add "$plugin_url" --yes
+      git -C "$plugin_dir" fetch --depth 1 origin "$plugin_ref"
+      git -C "$plugin_dir" checkout --detach "$plugin_ref"
+    fi
+  done < <(list "$REPO/packages/plugins.txt")
+
+  say "Installing the Thyx login screen (keeps the current session running)"
+  thyx_source="$HOME/.local/share/thyx"
+  if [[ ! -d $thyx_source ]]; then
+    git clone https://github.com/rccyx/thyx.git "$thyx_source"
+    git -C "$thyx_source" checkout --detach "$(head -1 "$REPO/packages/thyx-ref.txt")"
+  fi
+  (cd "$thyx_source" && ./scripts/install --yes)
+fi
+
 # ---------------------------------------------------------------- configs
 say "Copying config files (backups go to $BACKUP)"
 while read -r rel; do
@@ -81,6 +101,7 @@ while read -r rel; do
   cp -a "$src" "$dst"
 done < <(list "$REPO/paths.txt")
 chmod +x "$HOME/.config/omarchy/hooks/theme-set.d/conflux-icons.sh"
+chmod +x "$HOME/.local/bin/omarchy-app-updates"
 
 # Iotas starts over D-Bus by default, which can't find Flatpak apps here;
 # a local launcher entry starts it directly.

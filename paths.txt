@@ -21,3 +21,7 @@
 .config/omarchy/backgrounds
 .local/bin/reboot-to-windows
 .config/omarchy/extensions/omarchy-menu.jsonc
+.local/bin/omarchy-app-updates
+.local/share/applications/net.playsunrise.launcher.desktop
+.config/omarchy/plugins/quickshell.spotify/NativeSession.qml
+.config/omarchy/plugins/quickshell.spotify/SessionError.js

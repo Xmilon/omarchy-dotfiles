@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""Native Omarchy menu for installed app updates; never runs launcher commands."""
+import argparse
+import html
+import json
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+
+
+def output(args):
+    result = subprocess.run(args, text=True, capture_output=True, timeout=30)
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or f"{args[0]} failed")
+    return result.stdout
+
+
+def package_rows(text):
+    names = {"discord": "Discord", "t3code-bin": "T3 Code", "spotify": "Spotify"}
+    rows = []
+    for line in text.splitlines():
+        fields = line.split()
+        if len(fields) != 2 or not re.fullmatch(r"[a-zA-Z0-9@_+][a-zA-Z0-9@._+:-]*", fields[0]):
+            continue
+        package, version = fields
+        rows.append({"id": f"pkg:{package}", "label": f"{names.get(package, package)} · {version}", "package": package})
+    return rows
+
+
+def menu_label(value):
+    return html.escape(str(value)[:160], quote=False)
+
+
+def installed():
+    rows = []
+    if shutil.which("pacman"):
+        rows.append({"id": "packages", "label": "All packages · repositories + AUR"})
+        rows.extend(sorted(package_rows(output(["pacman", "-Qe"])), key=lambda row: row["label"].lower()))
+    if shutil.which("flatpak"):
+        rows.append({"id": "flatpaks", "label": "All Flatpak apps"})
+        for line in output(["flatpak", "list", "--app", "--columns=application,name,version"]).splitlines():
+            fields = line.split("\t")
+            if len(fields) >= 2 and re.fullmatch(r"[A-Za-z0-9_.-]+", fields[0]):
+                rows.append({"id": f"flatpak:{fields[0]}", "label": f"{fields[1]} · Flatpak", "app": fields[0]})
+    if shutil.which("omarchy"):
+        rows.append({"id": "plugins", "label": "Omarchy shell plugins"})
+    if shutil.which("uv"):
+        rows.append({"id": "uv", "label": "Python CLI apps · uv tools"})
+    return rows
+
+
+def update_command(row):
+    key = row["id"]
+    manager = ["yay", "-Syu"] if shutil.which("yay") else ["sudo", "pacman", "-Syu"]
+    if key == "packages":
+        return manager
+    if key.startswith("pkg:"):
+        return manager + ["--", row["package"]]
+    if key == "flatpaks":
+        return ["flatpak", "update"]
+    if key.startswith("flatpak:"):
+        return ["flatpak", "update", "--", row["app"]]
+    if key == "plugins":
+        return ["omarchy", "plugin", "update"]
+    if key == "uv":
+        return ["uv", "tool", "upgrade", "--all"]
+    raise ValueError("Unknown update target")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--list", action="store_true", help="List discovered targets as JSON")
+    mode.add_argument("--plan", metavar="ID", help="Print the command without running it")
+    mode.add_argument("--run", metavar="ID", help="Open the updater in a terminal")
+    mode.add_argument("--apply", metavar="ID", help="Run inside the update terminal")
+    args = parser.parse_args()
+    rows = installed()
+    if args.list:
+        print(json.dumps(rows, indent=2))
+        return 0
+    selected = args.plan or args.run or args.apply
+    if not selected:
+        labels = [menu_label(row["label"]) for row in rows]
+        result = subprocess.run(["omarchy", "menu", "select", "Update apps"] + labels, text=True, capture_output=True)
+        if result.returncode or not result.stdout.strip():
+            return 0
+        chosen = next((row for label, row in zip(labels, rows) if label == result.stdout.strip()), None)
+    else:
+        chosen = next((row for row in rows if row["id"] == selected), None)
+    if not chosen:
+        raise ValueError("This update target is not installed")
+    command = update_command(chosen)
+    if args.plan:
+        print(json.dumps(command))
+        return 0
+    if args.apply:
+        print(f"Updating {chosen['label']}", flush=True)
+        if chosen["id"].startswith("pkg:"):
+            print("Arch packages update together with system dependencies to avoid partial upgrades.", flush=True)
+        return subprocess.run(command).returncode
+    apply = shlex.join([str(__file__), "--apply", chosen["id"]])
+    return subprocess.run(["omarchy-launch-floating-terminal-with-presentation", apply]).returncode
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
+        print(f"App updates: {error}", file=sys.stderr)
+        sys.exit(1)

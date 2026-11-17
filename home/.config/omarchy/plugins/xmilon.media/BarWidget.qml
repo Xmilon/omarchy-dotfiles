@@ -1,13 +1,16 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import qs.Ui
 import qs.Commons
 import qs.Commons as Commons
+import "Timeline.js" as Timeline
 
 BarWidget {
   id: root
   moduleName: "omarchy.media"
+  Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
 
   readonly property var mediaService: bar?.shell?.firstPartyServiceFor("omarchy.media")
   readonly property var activePlayer: mediaService ? mediaService.activePlayer : null
@@ -18,10 +21,30 @@ BarWidget {
   readonly property string playIcon: activePlayer && activePlayer.isPlaying ? "󰏤" : "󰐊"
   readonly property string title: activePlayer ? (activePlayer.trackTitle || "") : ""
   readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
+  readonly property real trackLength: activePlayer && activePlayer.lengthSupported ? Timeline.seconds(activePlayer.length) : 0
+  readonly property real trackPosition: activePlayer && activePlayer.positionSupported ? Timeline.seconds(activePlayer.position) : 0
+  readonly property bool canSeek: !!activePlayer && activePlayer.canSeek && activePlayer.positionSupported && trackLength > 0
 
   property bool popupOpen: false
 
   function close() { popupOpen = false }
+  function seekTo(value) {
+    if (canSeek) activePlayer.position = Timeline.seekTarget(value, trackLength)
+  }
+  function openSpotify(nativePlayer) {
+    popupOpen = false
+    spotifyLauncher.command = nativePlayer
+      ? ["omarchy", "shell", "shell", "toggle", "quickshell.spotify", "{}"]
+      : ["spotify"]
+    spotifyLauncher.running = true
+  }
+  Process { id: spotifyLauncher }
+  Timer {
+    interval: 500
+    repeat: true
+    running: root.popupOpen && root.isPlaying && !!root.activePlayer && root.activePlayer.positionSupported
+    onTriggered: root.activePlayer.positionChanged()
+  }
   property real maxLabelWidth: 180
 
   // Audio visualizer. cava runs in this plugin's service (Service.qml), which
@@ -161,7 +184,7 @@ BarWidget {
       if (wheel.angleDelta.y > 0 && root.mediaService) root.mediaService.runAction("previous", false)
       else if (wheel.angleDelta.y < 0 && root.mediaService) root.mediaService.runAction("next", false)
     }
-    onEntered: if (root.bar) root.bar.showTooltip(root, root.hasMedia ? (root.title + (root.artist ? " — " + root.artist : "")) : "")
+    onEntered: if (root.bar) root.bar.showTooltip(root, Timeline.tooltip(root.hasMedia ? (root.title + (root.artist ? " — " + root.artist : "")) : ""))
     onExited: if (root.bar) root.bar.hideTooltip(root)
   }
 
@@ -174,20 +197,33 @@ BarWidget {
     contentWidth: popup.fittedContentWidth(Style.space(320))
     contentHeight: popup.fittedContentHeight(column.implicitHeight)
 
+    Item {
+      anchors.fill: parent
+      anchors.margins: -popup.padding
+      clip: true
+      Image {
+        anchors.fill: parent
+        source: root.popupOpen && root.activePlayer ? root.activePlayer.trackArtUrl || "" : ""
+        sourceSize: Qt.size(48, 48)
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        opacity: 0.18
+        layer.enabled: root.popupOpen && status === Image.Ready
+        layer.effect: MultiEffect { blurEnabled: true; blurMax: 32; blur: 1 }
+      }
+      Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+          GradientStop { position: 0; color: Qt.rgba(Commons.Color.background.r, Commons.Color.background.g, Commons.Color.background.b, 0.15) }
+          GradientStop { position: 1; color: Qt.rgba(Commons.Color.background.r, Commons.Color.background.g, Commons.Color.background.b, 0.85) }
+        }
+      }
+    }
+
     Column {
       id: column
       anchors.fill: parent
       spacing: Style.space(10)
-      // Pops in when the popup opens: slides down, grows and bounces a little.
-      property real popT: 1
-      opacity: Math.min(1, popT * 1.4)
-      transform: [
-        Scale { origin.x: column.width / 2; origin.y: 0; xScale: 0.94 + 0.06 * column.popT; yScale: 0.9 + 0.1 * column.popT },
-        Translate { y: -12 * (1 - column.popT) }
-      ]
-      NumberAnimation on popT { id: popIn; from: 0; to: 1; duration: 380; easing.type: Easing.OutBack; easing.overshoot: 1.6; running: false }
-      Connections { target: root; function onPopupOpenChanged() { if (root.popupOpen) popIn.restart() } }
-      Component.onCompleted: if (root.popupOpen) popIn.restart()
 
       Row {
         spacing: Style.space(10)
@@ -310,16 +346,73 @@ BarWidget {
         }
       }
 
+      Column {
+        width: parent.width
+        spacing: Style.space(2)
+        Row {
+          width: parent.width
+          Text {
+            textFormat: Text.PlainText
+            text: Timeline.timeLabel(seekSlider.dragging ? seekSlider.liveValue : root.trackPosition)
+            color: root.bar.foreground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            width: parent.width / 2
+          }
+          Text {
+            textFormat: Text.PlainText
+            text: Timeline.timeLabel(root.trackLength)
+            color: Qt.darker(root.bar.foreground, 1.3)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            width: parent.width / 2
+            horizontalAlignment: Text.AlignRight
+          }
+        }
+        PanelSlider {
+          id: seekSlider
+          bar: root.bar
+          width: parent.width
+          enabled: root.canSeek
+          opacity: enabled ? 1 : 0.35
+          minimum: 0
+          maximum: Math.max(1, root.trackLength)
+          step: 10
+          integer: true
+          value: root.trackPosition
+          activeFocusOnTab: true
+          Accessible.name: strings.t("seek.position")
+          fillColor: Commons.Color.accent
+          knobColor: Commons.Color.accent
+          onReleased: function(value) { root.seekTo(value) }
+          Keys.onLeftPressed: root.seekTo(root.trackPosition - 10)
+          Keys.onRightPressed: root.seekTo(root.trackPosition + 10)
+        }
+      }
+
       Row {
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: Style.space(6)
+        height: Style.space(40)
         // Transport controls keep previous, play, next in every language,
         // matching their glyphs; media controls are not mirrored.
         LayoutMirroring.enabled: false
         LayoutMirroring.childrenInherit: true
 
         Button {
+          text: strings.t("seek.back")
+          anchors.verticalCenter: parent.verticalCenter
+          focusable: true
+          horizontalPadding: Style.space(6)
+          foreground: root.bar.foreground
+          enabled: root.canSeek
+          opacity: enabled ? 1 : 0.4
+          onClicked: root.seekTo(root.trackPosition - 10)
+        }
+
+        Button {
           iconText: "󰒮"
+          anchors.verticalCenter: parent.verticalCenter
           foreground: root.bar.foreground
           horizontalPadding: Style.spacing.controlPaddingX
           verticalPadding: Style.spacing.controlPaddingY
@@ -330,6 +423,7 @@ BarWidget {
 
         Button {
           iconText: root.activePlayer && root.activePlayer.isPlaying ? "󰏤" : "󰐊"
+          anchors.verticalCenter: parent.verticalCenter
           foreground: root.bar.foreground
           horizontalPadding: Style.spacing.panelGap
           verticalPadding: Style.spacing.controlPaddingY
@@ -341,12 +435,23 @@ BarWidget {
 
         Button {
           iconText: "󰒭"
+          anchors.verticalCenter: parent.verticalCenter
           foreground: root.bar.foreground
           horizontalPadding: Style.spacing.controlPaddingX
           verticalPadding: Style.spacing.controlPaddingY
           enabled: root.activePlayer && root.activePlayer.canGoNext
           opacity: enabled ? 1.0 : 0.4
           onClicked: if (root.mediaService) root.mediaService.runAction("next", false, root.mediaService.playerKey(root.activePlayer))
+        }
+        Button {
+          text: strings.t("seek.forward")
+          anchors.verticalCenter: parent.verticalCenter
+          focusable: true
+          horizontalPadding: Style.space(6)
+          foreground: root.bar.foreground
+          enabled: root.canSeek
+          opacity: enabled ? 1 : 0.4
+          onClicked: root.seekTo(root.trackPosition + 10)
         }
       }
 
@@ -403,6 +508,38 @@ BarWidget {
           onWheel: function(event) {
             root.setPlayerVolume(root.playerVolume + (event.angleDelta.y > 0 ? 0.05 : -0.05))
           }
+        }
+      }
+
+      PanelSeparator { foreground: root.bar.foreground }
+
+      Row {
+        id: spotifyActions
+        width: parent.width
+        spacing: Style.space(6)
+        height: Math.max(openSpotifyButton.implicitHeight, nativeSpotifyButton.implicitHeight)
+        Button {
+          id: openSpotifyButton
+          width: (spotifyActions.width - spotifyActions.spacing) / 2
+          height: spotifyActions.height
+          text: strings.t("spotify.open")
+          fontSize: Style.font.caption
+          horizontalPadding: Style.space(6)
+          focusable: true
+          iconText: ""
+          foreground: root.bar.foreground
+          onClicked: root.openSpotify(false)
+        }
+        Button {
+          id: nativeSpotifyButton
+          width: (spotifyActions.width - spotifyActions.spacing) / 2
+          height: spotifyActions.height
+          text: strings.t("spotify.native")
+          fontSize: Style.font.caption
+          horizontalPadding: Style.space(6)
+          focusable: true
+          foreground: root.bar.foreground
+          onClicked: root.openSpotify(true)
         }
       }
 
