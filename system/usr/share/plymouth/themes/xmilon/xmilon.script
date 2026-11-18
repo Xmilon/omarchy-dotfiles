@@ -1,0 +1,200 @@
+# Xmilon boot screen: matches the login screen (Thyx) and the after-login
+# loading screen. Images are pre-rendered at 1080p by xmilon-plymouth-render
+# (an mkinitcpio hook) and scaled here.
+#
+# Disk unlocked by the TPM: avatar, name and a loading bar.
+# TPM refused: the same glass password pill as the login.
+
+Window.SetBackgroundTopColor(0.043, 0.067, 0.094);
+Window.SetBackgroundBottomColor(0.043, 0.067, 0.094);
+
+global.frame = 0;
+global.layout_w = 0;
+global.layout_h = 0;
+global.asking = 0;
+global.progress = 0;
+global.bullet_count = 0;
+global.bullets = [];
+
+bg.src = Image("background.png");
+bg.sprite = Sprite();
+bg.sprite.SetZ(-100);
+
+avatar.src = Image("avatar.png");
+avatar.sprite = Sprite();
+name.src = Image("name.png");
+name.sprite = Sprite();
+
+pill.src = Image("pill.png");
+pill.sprite = Sprite();
+button.src = Image("button.png");
+button.sprite = Sprite();
+placeholder.src = Image("placeholder.png");
+placeholder.sprite = Sprite();
+hint.src = Image("hint.png");
+hint.sprite = Sprite();
+bullet.src = Image("bullet.png");
+
+track.src = Image("bar_track.png");
+track.sprite = Sprite();
+fill.src = Image("bar_fill.png");
+fill.sprite = Sprite();
+starting.src = Image("starting.png");
+starting.sprite = Sprite();
+
+fun scaled(img) {
+  return img.Scale(Math.Int(img.GetWidth() * global.s + 0.5), Math.Int(img.GetHeight() * global.s + 0.5));
+}
+
+fun place(sprite, img, cx, top, z) {
+  sprite.SetImage(img);
+  sprite.SetPosition(Math.Int(cx - img.GetWidth() / 2), Math.Int(top), z);
+}
+
+fun layout() {
+  global.layout_w = Window.GetWidth();
+  global.layout_h = Window.GetHeight();
+  sw = global.layout_w / 1920;
+  sh = global.layout_h / 1080;
+  global.s = sw;
+  if (sh < sw) global.s = sh;
+  if (global.s < 0.75) global.s = 0.75;
+  s = global.s;
+
+  # Background covers the window.
+  cover = sw;
+  if (sh > cover) cover = sh;
+  bgi = bg.src.Scale(Math.Int(1920 * cover + 1), Math.Int(1080 * cover + 1));
+  bg.sprite.SetImage(bgi);
+  bg.sprite.SetPosition(Math.Int((global.layout_w - bgi.GetWidth()) / 2), Math.Int((global.layout_h - bgi.GetHeight()) / 2), -100);
+
+  # Same column as the login form, centred 8 % below the middle.
+  cx = global.layout_w / 2;
+  top = global.layout_h / 2 + global.layout_h * 0.08 - 116 * s;
+  global.avatar_img = scaled(avatar.src);
+  place(avatar.sprite, global.avatar_img, cx, top, 10);
+  y = top + 96 * s + 14 * s;
+  global.name_img = scaled(name.src);
+  place(name.sprite, global.name_img, cx, y, 10);
+  y = y + 33 * s + 14 * s;
+
+  global.pill_img = scaled(pill.src);
+  global.pill_x = cx - global.pill_img.GetWidth() / 2;
+  global.pill_y = y;
+  place(pill.sprite, global.pill_img, cx, y, 10);
+  global.button_img = scaled(button.src);
+  button.sprite.SetImage(global.button_img);
+  button.sprite.SetPosition(Math.Int(global.pill_x + global.pill_img.GetWidth() - 6 * s - global.button_img.GetWidth()), Math.Int(y + 6 * s), 11);
+  global.placeholder_img = scaled(placeholder.src);
+  placeholder.sprite.SetImage(global.placeholder_img);
+  placeholder.sprite.SetPosition(Math.Int(global.pill_x + 18 * s), Math.Int(y + (46 * s - global.placeholder_img.GetHeight()) / 2), 11);
+  global.hint_img = scaled(hint.src);
+  place(hint.sprite, global.hint_img, cx, y + 46 * s + 12 * s, 10);
+  global.bullet_img = bullet.src.Scale(Math.Int(8 * s + 0.5), Math.Int(8 * s + 0.5));
+  global.bullet_y = y + 23 * s - 4 * s;
+
+  # Loading bar sits where the pill would be.
+  global.track_img = scaled(track.src);
+  global.bar_x = cx - global.track_img.GetWidth() / 2;
+  global.bar_y = y + 20 * s;
+  track.sprite.SetImage(global.track_img);
+  track.sprite.SetPosition(Math.Int(global.bar_x), Math.Int(global.bar_y), 10);
+  fill.sprite.SetPosition(Math.Int(global.bar_x), Math.Int(global.bar_y), 11);
+  global.starting_img = scaled(starting.src);
+  starting.sprite.SetImage(global.starting_img);
+  starting.sprite.SetPosition(Math.Int(global.bar_x), Math.Int(global.bar_y + 14 * s), 10);
+
+  for (i = 0; global.bullets[i]; i++) global.bullets[i].SetImage(global.bullet_img);
+  position_bullets();
+  set_progress(global.progress);
+}
+
+fun position_bullets() {
+  for (i = 0; global.bullets[i]; i++)
+    global.bullets[i].SetPosition(Math.Int(global.pill_x + 18 * global.s + i * 13 * global.s), Math.Int(global.bullet_y), 12);
+}
+
+fun set_progress(p) {
+  if (p < 0.02) p = 0.02;
+  if (p > 1) p = 1;
+  global.progress = p;
+  w = Math.Int(300 * global.s * p);
+  if (w < 1) w = 1;
+  fill.sprite.SetImage(fill.src.Scale(w, Math.Int(6 * global.s + 0.5)));
+}
+
+fun show_form(alpha) {
+  avatar.sprite.SetOpacity(alpha);
+  name.sprite.SetOpacity(alpha);
+  bar = alpha;
+  ask = 0;
+  if (global.asking) { bar = 0; ask = alpha; }
+  mode = Plymouth.GetMode();
+  if (mode == "shutdown" || mode == "reboot") bar = 0;
+  pill.sprite.SetOpacity(ask);
+  button.sprite.SetOpacity(ask);
+  hint.sprite.SetOpacity(ask);
+  ph = ask;
+  if (global.bullet_count > 0) ph = 0;
+  placeholder.sprite.SetOpacity(ph);
+  for (i = 0; global.bullets[i]; i++) {
+    if (i < global.bullet_count) global.bullets[i].SetOpacity(ask);
+    else global.bullets[i].SetOpacity(0);
+  }
+  track.sprite.SetOpacity(bar);
+  fill.sprite.SetOpacity(bar);
+  starting.sprite.SetOpacity(bar);
+}
+
+fun refresh_callback() {
+  if (Window.GetWidth() != global.layout_w || Window.GetHeight() != global.layout_h) layout();
+  global.frame++;
+  # Fade in over half a second, like the login's intro.
+  a = global.frame / 25;
+  if (a > 1) a = 1;
+  # Ease-out creep toward 90 % while waiting; real progress can overtake it.
+  if (!global.asking) {
+    t = global.frame / 50 / 12;
+    if (t > 1) t = 1;
+    creep = 0.9 * (1 - (1 - t) * (1 - t));
+    if (creep > global.progress) set_progress(creep);
+  }
+  show_form(a);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun display_normal_callback() {
+  global.asking = 0;
+  global.bullet_count = 0;
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+fun display_password_callback(prompt, bullets) {
+  global.asking = 1;
+  if (bullets > 21) bullets = 21;
+  for (i = 0; i < bullets; i++) {
+    if (!global.bullets[i]) {
+      global.bullets[i] = Sprite(global.bullet_img);
+    }
+  }
+  global.bullet_count = bullets;
+  position_bullets();
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun progress_callback(duration, progress) {
+  if (!global.asking && progress > global.progress) set_progress(progress);
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+message_sprite = Sprite();
+message_sprite.SetPosition(10, 10, 10000);
+fun display_message_callback(text) {
+  message_sprite.SetImage(Image.Text(text, 1, 1, 1));
+  message_sprite.SetOpacity(1);
+}
+fun hide_message_callback(text) { message_sprite.SetOpacity(0); }
+Plymouth.SetDisplayMessageFunction(display_message_callback);
+Plymouth.SetHideMessageFunction(hide_message_callback);
+
+layout();

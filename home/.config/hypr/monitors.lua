@@ -7,18 +7,47 @@
 local omarchy_monitor_scale = "auto"
 hl.monitor({ output = "", mode = "1920x1080@180", position = "auto", scale = omarchy_monitor_scale })
 -- Laptop screen (eDP) only when no other monitor is plugged in: off while an
--- external monitor is connected, back on as soon as none is. Checked when
--- Hyprland starts and whenever a monitor is plugged in or unplugged.
-function XmilonUpdateLaptopScreen()
-  local external = false
-  for _, m in ipairs(hl.get_monitors()) do
-    if not tostring(m.name):match("^eDP") then external = true end
+-- external monitor is connected, back on as soon as none is.
+-- Decided from the kernel's connector status (/sys/class/drm) while the config
+-- loads, before Hyprland lights any screen, so it never turns the laptop
+-- screen on just to turn it off again (that reconfigure is a slow black flash
+-- on NVIDIA). Like Windows applying the remembered layout at boot. Checked
+-- again whenever a monitor is plugged in or unplugged. Output names aren't
+-- fixed (eDP-1 or eDP-2 depending on driver load order), so none are hard-coded.
+local function xmilon_is_laptop(name)
+  return name:match("^eDP") ~= nil or name:match("^LVDS") ~= nil
+end
+
+local function xmilon_connectors()
+  local list = {}
+  local p = io.popen('for f in /sys/class/drm/card*-*/status; do [ -r "$f" ] && echo "$f $(cat "$f")"; done 2>/dev/null')
+  if p then
+    for line in p:lines() do
+      local name, status = line:match("/card%d+%-([^/]+)/status (%S+)")
+      if name and not name:match("^Writeback") then list[#list + 1] = { name = name, connected = status == "connected" } end
+    end
+    p:close()
   end
-  if external then
-    hl.monitor({ output = "eDP-1", disabled = true })
-  else
-    -- disabled = false has to be said outright, or the earlier "off" sticks.
-    hl.monitor({ output = "eDP-1", disabled = false, mode = "preferred", position = "auto", scale = omarchy_monitor_scale })
+  return list
+end
+
+function XmilonUpdateLaptopScreen()
+  local external, laptops = false, {}
+  for _, c in ipairs(xmilon_connectors()) do
+    if xmilon_is_laptop(c.name) then laptops[c.name] = true
+    elseif c.connected then external = true end
+  end
+  for _, m in ipairs(hl.get_monitors()) do
+    local name = tostring(m.name)
+    if xmilon_is_laptop(name) then laptops[name] = true else external = true end
+  end
+  for name in pairs(laptops) do
+    if external then
+      hl.monitor({ output = name, disabled = true })
+    else
+      -- disabled = false has to be said outright, or the earlier "off" sticks.
+      hl.monitor({ output = name, disabled = false, mode = "preferred", position = "auto", scale = omarchy_monitor_scale })
+    end
   end
 end
 XmilonUpdateLaptopScreen()

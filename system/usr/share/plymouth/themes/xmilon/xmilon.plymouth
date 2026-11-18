@@ -1,0 +1,9 @@
+[Plymouth Theme]
+Name=Xmilon
+Description=Boot screen matching the Xmilon login: blurred wallpaper, avatar, glass password pill.
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/xmilon
+ScriptFile=/usr/share/plymouth/themes/xmilon/xmilon.script
+ConsoleLogBackgroundColor=0x0b1118

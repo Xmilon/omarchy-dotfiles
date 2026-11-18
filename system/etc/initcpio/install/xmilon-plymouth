@@ -1,0 +1,12 @@
+#!/bin/bash
+# Re-renders the Xmilon boot-screen images (current wallpaper + avatar) right
+# before the plymouth hook copies the theme into the boot image.
+build() {
+  if [[ -x /usr/local/lib/xmilon-plymouth-render ]]; then
+    /usr/local/lib/xmilon-plymouth-render >/dev/null || warning "xmilon-plymouth: could not render the boot screen"
+  fi
+}
+
+help() {
+  echo "Renders the Xmilon Plymouth theme images from the login screen's wallpaper and avatar."
+}

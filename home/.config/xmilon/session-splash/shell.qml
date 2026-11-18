@@ -83,8 +83,18 @@ ShellRoot {
   }
   onReadyCountChanged: creep = 0
 
+  // When each piece showed up, for tuning (~/.local/state/xmilon/session-splash.log).
+  property var stamps: ({})
+  onReadyChanged: {
+    for (var i = 0; i < steps.length; ++i)
+      if (ready[steps[i].key] && stamps[steps[i].key] === undefined) stamps[steps[i].key] = elapsed.toFixed(2)
+  }
+
   function finish() {
     if (leaving) return
+    var line = new Date().toISOString() + " up=" + elapsed.toFixed(2) + "s"
+    for (var k in stamps) line += " " + k + "=" + stamps[k] + "s"
+    if (!demo) Quickshell.execDetached(["sh", "-c", "mkdir -p \"$HOME/.local/state/xmilon\" && echo \"$1\" >> \"$HOME/.local/state/xmilon/session-splash.log\"", "sh", line])
     progress = 1
     leaving = true
     level = 0

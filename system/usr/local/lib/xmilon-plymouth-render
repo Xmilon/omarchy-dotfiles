@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Render the Xmilon boot-screen (Plymouth) images so it matches the login.
+
+Same blurred wallpaper, round avatar, name and glass password pill as the SDDM
+login (Thyx) and lock screen. Plymouth can't blur or load fonts reliably, so
+everything is pre-rendered here, at 1080p; the theme script scales it.
+
+Runs as the `xmilon-plymouth` mkinitcpio hook, so every boot-image rebuild
+picks up the current wallpaper and avatar (from /var/lib/thyx-<user>/, kept
+in sync by thyx-background@<user>.path).
+
+  xmilon-plymouth-render [OUT_DIR]   default /usr/share/plymouth/themes/xmilon
+"""
+import configparser
+import glob
+import subprocess
+import sys
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/plymouth/themes/xmilon")
+W, H = 1920, 1080
+WHITE = (255, 255, 255)
+
+
+def state_dir():
+    # /var/lib/thyx-<user>/ (not thyx-backups): the one with the login assets.
+    dirs = sorted(d for d in glob.glob("/var/lib/thyx-*/") if Path(d, "background.jpg").exists())
+    return Path(dirs[0]) if dirs else None
+
+
+def font(size, weight=400):
+    path = subprocess.run(["fc-match", "-f", "%{file}", "Plus Jakarta Sans"],
+                          capture_output=True, text=True).stdout.strip()
+    try:
+        f = ImageFont.truetype(path, size)
+        try:
+            f.set_variation_by_axes([weight])
+        except Exception:
+            pass
+        return f
+    except Exception:
+        return ImageFont.load_default(size)
+
+
+def text_image(text, size, weight, alpha):
+    f = font(size, weight)
+    box = f.getbbox(text)
+    w, h = box[2] - box[0] + 4, size + size // 2
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(im).text((2 - box[0], (h - size) // 2 - size // 8), text, font=f,
+                           fill=WHITE + (int(255 * alpha),))
+    return im
+
+
+def rounded(size, radius, fill, outline=None, width=1, scale=4):
+    w, h = size
+    big = Image.new("RGBA", (w * scale, h * scale), (0, 0, 0, 0))
+    ImageDraw.Draw(big).rounded_rectangle(
+        (0, 0, w * scale - 1, h * scale - 1), radius * scale, fill=fill,
+        outline=outline, width=width * scale)
+    return big.resize((w, h), Image.LANCZOS)
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    src = state_dir()
+    name = "Welcome"
+    if src and (src / "theme.conf.user").exists():
+        cfg = configparser.ConfigParser()
+        cfg.read(src / "theme.conf.user")
+        name = cfg.get("General", "DisplayName", fallback=name).strip('"') or name
+
+    # Background: wallpaper, cover-cropped, blurred like the login, dimmed 0.28.
+    bg = Image.new("RGB", (W, H), (11, 17, 24))
+    if src and (src / "background.jpg").exists():
+        wp = Image.open(src / "background.jpg").convert("RGB")
+        scale = max(W / wp.width, H / wp.height)
+        wp = wp.resize((round(wp.width * scale), round(wp.height * scale)), Image.LANCZOS)
+        left, top = (wp.width - W) // 2, (wp.height - H) // 2
+        wp = wp.crop((left, top, left + W, top + H))
+        small = wp.resize((W // 4, H // 4), Image.LANCZOS).filter(ImageFilter.GaussianBlur(10))
+        bg = small.resize((W, H), Image.BICUBIC).filter(ImageFilter.GaussianBlur(4))
+    bg = Image.blend(bg, Image.new("RGB", (W, H), (0, 0, 0)), 0.28)
+    bg.save(OUT / "background.png")
+
+    # Round avatar with the login's 55 % white ring.
+    size = 96
+    av = Image.new("RGBA", (size, size), (255, 255, 255, 30))
+    if src and (src / "avatar.png").exists():
+        a = Image.open(src / "avatar.png").convert("RGBA")
+        s = min(a.width, a.height)
+        a = a.crop(((a.width - s) // 2, (a.height - s) // 2, (a.width + s) // 2, (a.height + s) // 2))
+        av = a.resize((size, size), Image.LANCZOS)
+    mask = Image.new("L", (size * 4, size * 4), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, size * 4 - 1, size * 4 - 1), fill=255)
+    mask = mask.resize((size, size), Image.LANCZOS)
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.paste(av, (0, 0), mask)
+    ring = Image.new("RGBA", (size * 4, size * 4), (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse((0, 0, size * 4 - 1, size * 4 - 1), outline=WHITE + (140,), width=8)
+    out = Image.alpha_composite(out, ring.resize((size, size), Image.LANCZOS))
+    out.save(OUT / "avatar.png")
+
+    text_image(name, 22, 600, 1.0).save(OUT / "name.png")
+    text_image("Enter password", 15, 400, 0.55).save(OUT / "placeholder.png")
+    text_image("Disk encryption password", 13, 400, 0.6).save(OUT / "hint.png")
+    text_image("Starting…", 13, 400, 0.7).save(OUT / "starting.png")
+
+    # Password pill (focused look) and its round → button.
+    rounded((300, 46), 23, (255, 255, 255, 36), WHITE + (153,), 1).save(OUT / "pill.png")
+    btn = rounded((34, 34), 17, (255, 255, 255, 217))
+    arrow = text_image("→", 16, 700, 1.0)
+    px = arrow.load()
+    for y in range(arrow.height):
+        for x in range(arrow.width):
+            r, g, b, a = px[x, y]
+            px[x, y] = (13, 23, 33, a)
+    btn.alpha_composite(arrow, ((34 - arrow.width) // 2, (34 - arrow.height) // 2))
+    btn.save(OUT / "button.png")
+    rounded((8, 8), 4, WHITE + (255,)).save(OUT / "bullet.png")
+
+    # Loading bar (same as the after-login loading screen).
+    rounded((300, 6), 3, (255, 255, 255, 36), WHITE + (26,), 1).save(OUT / "bar_track.png")
+    fill = Image.new("RGBA", (300, 6), (0, 0, 0, 0))
+    grad = Image.new("RGBA", (300, 6))
+    for x in range(300):
+        a = int(140 + 115 * x / 299)
+        for y in range(6):
+            grad.putpixel((x, y), (255, 255, 255, a))
+    fill.paste(grad, (0, 0), rounded((300, 6), 3, WHITE + (255,)))
+    fill.save(OUT / "bar_fill.png")
+    print(f"xmilon-plymouth-render: wrote {OUT}")
+
+
+if __name__ == "__main__":
+    main()

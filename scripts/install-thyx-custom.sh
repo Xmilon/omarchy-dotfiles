@@ -22,4 +22,11 @@ sudo systemctl start "thyx-background@$owner.service"
 sudo systemctl enable --now "thyx-background@$owner.path"
 sudo install -Dm644 "$repo/system/usr/local/share/xmilon/sddm-hyprland.lua" /usr/local/share/xmilon/sddm-hyprland.lua
 sudo install -Dm644 "$repo/system/etc/sddm.conf.d/zz-thyx-login.conf" /etc/sddm.conf.d/zz-thyx-login.conf
+# Boot screen (Plymouth) matching the login; images re-rendered on every boot-image build.
+sudo install -Dm755 "$repo/system/usr/local/lib/xmilon-plymouth-render" /usr/local/lib/xmilon-plymouth-render
+sudo install -Dm644 "$repo/system/etc/initcpio/install/xmilon-plymouth" /etc/initcpio/install/xmilon-plymouth
+sudo install -Dm644 "$repo/system/usr/share/plymouth/themes/xmilon/xmilon.plymouth" /usr/share/plymouth/themes/xmilon/xmilon.plymouth
+sudo install -Dm644 "$repo/system/usr/share/plymouth/themes/xmilon/xmilon.script" /usr/share/plymouth/themes/xmilon/xmilon.script
+sudo /usr/local/lib/xmilon-plymouth-render
+sudo plymouth-set-default-theme xmilon
 echo "Installed custom Thyx. Autologin is off; the current session stays open."

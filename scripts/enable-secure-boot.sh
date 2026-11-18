@@ -3,9 +3,11 @@
 # keeping Windows dual boot working, plus TPM disk unlock sealed to it.
 #
 #   scripts/enable-secure-boot.sh prepare   keys, sealed+signed Limine, auto re-seal
-#   (reboot to firmware: clear Secure Boot keys / Setup Mode, keep Secure Boot off)
-#   scripts/enable-secure-boot.sh enroll    enroll your keys + Microsoft's + firmware's
-#   (reboot to firmware: turn Secure Boot on)
+#   (reboot to firmware. ASUS: Security > Secure Boot > Secure Boot Control =
+#    Enabled, then Key Management appears > Reset To Setup Mode > Yes, F10.
+#    Setup Mode doesn't enforce Secure Boot, so it still boots.)
+#   scripts/enable-secure-boot.sh enroll    enroll your keys + Microsoft's
+#   (plain reboot: Secure Boot Control is already on, now enforced)
 #   scripts/enable-secure-boot.sh finish    check, fresh signed snapshot, re-seal TPM
 #
 # Recovery if it won't boot: turn Secure Boot off in the firmware and pick
@@ -35,18 +37,19 @@ case $step in
     # BOOTX64.EFI stays stock and unsigned on purpose: the rescue loader.
     sudo limine-update
     sudo sbctl verify || true
-    echo "Next: reboot into the firmware (systemctl reboot --firmware-setup),"
-    echo "clear the Secure Boot keys (Setup Mode), keep Secure Boot off, boot, then run: $0 enroll"
+    echo "Next: systemctl reboot --firmware-setup; Secure Boot Control = Enabled,"
+    echo "Key Management > Reset To Setup Mode > Yes, F10. Then run: $0 enroll"
     ;;
   enroll)
     sudo sbctl status
     sudo sbctl status --json | grep -q '"setup_mode": *true' || {
       echo "Not in Setup Mode yet: clear the Secure Boot keys in the firmware first." >&2; exit 1; }
     # -m Microsoft keys: Windows and the GPU's option ROMs need them.
-    # -f the firmware's own built-in db/KEK entries (OEM components).
-    sudo sbctl enroll-keys -m -f
+    # Not -f: on ASUS it adds duplicate built-in db entries that cause a
+    # "Secure Boot Violation" (CachyOS wiki).
+    sudo sbctl enroll-keys -m
     sudo sbctl status
-    echo "Next: reboot into the firmware, turn Secure Boot on, boot, then run: $0 finish"
+    echo "Next: reboot (Secure Boot Control is already Enabled), then run: $0 finish"
     ;;
   finish)
     sudo sbctl status
