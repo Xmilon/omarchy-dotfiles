@@ -27,6 +27,10 @@ case $step in
     # as off and boots anything (the "fail-open" trap).
     grep -q '^ENABLE_ENROLL_LIMINE_CONFIG=yes' /etc/default/limine ||
       echo 'ENABLE_ENROLL_LIMINE_CONFIG=yes' | sudo tee -a /etc/default/limine >/dev/null
+    # The firmware checks every boot image's signature; Limine hashing the
+    # whole 150 MB image again only costs boot time (every entry is protocol: efi).
+    grep -q '^ENABLE_VERIFICATION=' /etc/default/limine ||
+      echo 'ENABLE_VERIFICATION=no' | sudo tee -a /etc/default/limine >/dev/null
     install_file 755 usr/local/bin/xmilon-limine-seal
     install_file 644 etc/pacman.d/hooks/99-zz-xmilon-limine-seal.hook
     install_file 644 etc/systemd/system/xmilon-limine-seal.path
