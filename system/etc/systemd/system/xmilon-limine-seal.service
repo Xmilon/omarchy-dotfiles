@@ -1,0 +1,8 @@
+[Unit]
+Description=Seal and sign the Limine boot loader for Secure Boot
+
+[Service]
+Type=oneshot
+# Let Limine's own tools finish (they seal it themselves) before checking.
+ExecStartPre=/bin/sleep 8
+ExecStart=/usr/local/bin/xmilon-limine-seal

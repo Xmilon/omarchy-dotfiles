@@ -1,0 +1,12 @@
+# Runs after Omarchy's 99-omarchy-limine.hook, which copies an unsealed,
+# unsigned Limine over the boot loader on every Limine upgrade.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = limine
+
+[Action]
+Description = Sealing and signing the Limine boot loader for Secure Boot...
+When = PostTransaction
+Exec = /usr/local/bin/xmilon-limine-seal

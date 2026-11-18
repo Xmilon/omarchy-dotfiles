@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Keep the Limine boot loader sealed to limine.conf and signed for Secure Boot.
+# Limine's own tools already do this when they change limine.conf; this catches
+# everything else: Omarchy's pacman hook that copies a raw loader over the
+# sealed one after every Limine upgrade, and limine.conf edits made outside the
+# Limine tools (omarchy-refresh-limine, manual edits). Without it the laptop
+# would refuse to boot with Secure Boot on.
+# Run by 99-zz-xmilon-limine-seal.hook and xmilon-limine-seal.path.
+set -u
+LOADER=/boot/EFI/limine/limine_x64.efi
+CONF=/boot/limine.conf
+[[ -f $LOADER && -f $CONF ]] || exit 0
+grep -q '^ENABLE_ENROLL_LIMINE_CONFIG=yes' /etc/default/limine 2>/dev/null || exit 0
+
+sealed() { grep -q -a "$(b2sum "$CONF" | cut -d' ' -f1)" "$LOADER"; }
+signed() { ! command -v sbctl >/dev/null || sbctl verify 2>/dev/null | grep -q "✓ $LOADER is signed"; }
+
+if sealed && signed; then exit 0; fi
+logger -t xmilon-limine-seal "re-sealing and re-signing $LOADER"
+/usr/bin/limine-enroll-config
+sealed && signed || { logger -t xmilon-limine-seal "FAILED to seal $LOADER"; exit 1; }

@@ -12,3 +12,4 @@ git
 gimp
 inter-font
 bazaar
+sbctl

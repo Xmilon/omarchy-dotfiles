@@ -1,0 +1,9 @@
+[Unit]
+Description=Re-seal the Limine boot loader when limine.conf changes
+
+[Path]
+PathChanged=/boot/limine.conf
+PathChanged=/boot/EFI/limine/limine_x64.efi
+
+[Install]
+WantedBy=multi-user.target
