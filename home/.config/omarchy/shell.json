@@ -173,7 +173,7 @@
   },
   "idle": {
     "lock": 0,
-    "screensaver": 150
+    "screensaver": 0
   },
   "plugins": [
     {
