@@ -35,6 +35,10 @@
   "update.apps.packages": {"icon":"󰏖","label":"Update all packages","action":"~/.local/bin/omarchy-app-updates --run packages"},
   "update.apps.flatpak": {"icon":"","label":"Flatpak apps","action":"~/.local/bin/omarchy-app-updates --run flatpaks","when":"command -v flatpak >/dev/null"},
 
+  // One-click app stores, under Install.
+  "install.bazaar": {"icon":"󰏓","label":"App Store","description":"Flathub apps, one-click install","action":"uwsm-app -- io.github.kolunmi.Bazaar.desktop","when":"command -v bazaar >/dev/null"},
+  "install.pamac": {"icon":"󰣇","label":"Pamac (AUR)","description":"Arch packages and AUR, one-click install","action":"uwsm-app -- org.manjaro.pamac.manager.desktop","when":"command -v pamac-manager >/dev/null"},
+
   // Restart straight into Windows once (asks for your password).
   "system.reboot-windows": {"icon":"󰖳","label":"Reboot to Windows","action":"~/.local/bin/reboot-to-windows","when":"efibootmgr | grep -q 'Windows Boot Manager'"},
 }
