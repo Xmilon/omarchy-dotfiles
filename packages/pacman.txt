@@ -11,3 +11,4 @@ python
 git
 gimp
 inter-font
+bazaar

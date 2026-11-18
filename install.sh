@@ -137,6 +137,14 @@ if ((ONLY_CONFIGS == 0)); then
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-popup-anim.hook" /etc/pacman.d/hooks/omarchy-popup-anim.hook
   sudo /usr/local/bin/omarchy-popup-anim-patch || warn "Popup animation patch skipped (Omarchy changed)"
 
+  say "Bar: stays on the background set in shell.json (double-click no longer cycles it)"
+  sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-bar-lock-patch" /usr/local/bin/omarchy-bar-lock-patch
+  sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-bar-lock.hook" /etc/pacman.d/hooks/omarchy-bar-lock.hook
+  sudo /usr/local/bin/omarchy-bar-lock-patch || warn "Bar background lock skipped (Omarchy's bar changed)"
+
+  say "Pamac: AUR enabled"
+  [[ -f /etc/pamac.conf ]] && sudo sed -i -E 's/^#(EnableAUR|CheckAURUpdates)$/\1/' /etc/pamac.conf
+
   say "Outfit font (clocks)"
   sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/Outfit.ttf" /usr/local/share/fonts/outfit/Outfit.ttf
   sudo install -Dm644 "$REPO/system/usr/local/share/fonts/outfit/OFL.txt" /usr/local/share/fonts/outfit/OFL.txt

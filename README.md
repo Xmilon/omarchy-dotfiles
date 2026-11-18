@@ -22,6 +22,8 @@ From left to right:
 
 Thin dividers separate the groups, and the middle group is centred on the screen.
 
+The bar is **clear** (`"background": "none"` in `shell.json`). Omarchy cycles clear / glassy / opaque when you double-click an empty spot on the bar; `omarchy-bar-lock-patch` turns that off (a pacman hook re-applies it after updates), so it only changes from the menu (Style → Top Bar). Undo: `sudo pacman -S omarchy`.
+
 ### Music widget
 
 <img src="docs/screenshots/music.png" width="340" alt="Music popup">
@@ -49,6 +51,10 @@ The generated AppImage integration owns Sunrise's launcher entry. The older `net
 
 Every bar popup (clock, weather, audio, network, Bluetooth, power, music, notes, system info, tray menus) pops open with a small overshoot and shrinks away on close. `omarchy-popup-anim-patch` changes Omarchy's two shared popup surfaces (`Ui/KeyboardPanel.qml`, `Ui/PopupCard.qml`); a pacman hook re-applies it after updates and it skips itself if upstream changed. Undo: `sudo pacman -S omarchy`.
 
+### App stores
+
+**Bazaar** (Flathub apps, modern) and **Pamac** (Arch repos + AUR) are both in the app launcher for one-click installs. Pamac has AUR enabled in `/etc/pamac.conf`.
+
 ### Menu Back button
 
 `omarchy-menu-back-patch` makes Left/Backspace in the Super+Space menu land on the row you came from, and return from pickers opened by a menu row (e.g. *Update → Applications → All installed apps…*). It edits Omarchy's `Menu.qml`; a pacman hook re-applies it after Omarchy updates, and it skips itself if upstream changed that code. Undo with `sudo pacman -S omarchy`.
@@ -61,6 +67,9 @@ Every bar popup (clock, weather, audio, network, Bluetooth, power, music, notes,
 - **Customise** the title in `~/.config/thyx/settings.json` and the avatar by replacing `~/.config/thyx/solo.png`.
 - **Autologin is off** (`/etc/sddm.conf.d/zz-thyx-login.conf`) so the screen shows at every boot. The tested Thyx commit is in `packages/thyx-ref.txt`.
 - Preview without logging out: `sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/thyx`.
+- **External monitor first.** The greeter runs with `/usr/local/share/xmilon/sddm-hyprland.lua` (Omarchy's greeter config plus a rule): when an external monitor is plugged in, the laptop panel is off, so the login screen only shows on the external one. Laptop alone: the panel stays on.
+- **One password per boot.** The encrypted disk is unlocked by the TPM (`scripts/enable-tpm-unlock.sh`, run once by hand: it needs the disk password). It adds a TPM key sealed to PCR 7, switches the initramfs to systemd (`/etc/mkinitcpio.conf.d/zz-xmilon-tpm-unlock.conf`) and adds `tpm2-device=auto` to `/etc/default/limine`. If the TPM refuses (firmware or Secure Boot change), the disk password prompt comes back. Secure Boot is off on this laptop, so this protects mainly against the drive being taken out; the login screen protects the session. Undo steps are at the top of the script.
+- **Loading screen after login** (`~/.config/xmilon/session-splash`, started from `hypr/autostart.lua`): same blurred wallpaper and avatar as the login, "Welcome back", and a loading bar that moves as the wallpaper, bar and notifications really come up. Then it fades into the desktop. It gives up after 25 s, and a click skips it. Preview: `XMILON_SPLASH_DEMO=1 qs -n -p ~/.config/xmilon/session-splash`.
 
 ### Lock screen
 

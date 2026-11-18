@@ -5,3 +5,4 @@ modrinth-app-bin
 protonup-qt
 proton-ge-custom-bin
 lsfg-vk-git
+pamac-aur

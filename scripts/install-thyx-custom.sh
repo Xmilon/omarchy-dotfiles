@@ -20,5 +20,6 @@ sudo ln -sfn "/var/lib/thyx-$owner/theme.conf.user" "$theme/theme.conf.user"
 sudo systemctl daemon-reload
 sudo systemctl start "thyx-background@$owner.service"
 sudo systemctl enable --now "thyx-background@$owner.path"
+sudo install -Dm644 "$repo/system/usr/local/share/xmilon/sddm-hyprland.lua" /usr/local/share/xmilon/sddm-hyprland.lua
 sudo install -Dm644 "$repo/system/etc/sddm.conf.d/zz-thyx-login.conf" /etc/sddm.conf.d/zz-thyx-login.conf
 echo "Installed custom Thyx. Autologin is off; the current session stays open."
