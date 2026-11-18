@@ -133,7 +133,7 @@ fun show_form(alpha) {
   if (mode == "shutdown" || mode == "reboot") bar = 0;
   pill.sprite.SetOpacity(ask);
   button.sprite.SetOpacity(ask);
-  hint.sprite.SetOpacity(ask);
+  hint.sprite.SetOpacity(0);  # the boot screen is the login now; no "disk password" hint
   ph = ask;
   if (global.bullet_count > 0) ph = 0;
   placeholder.sprite.SetOpacity(ph);

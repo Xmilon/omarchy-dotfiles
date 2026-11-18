@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Secure Boot with your own keys (sbctl) on Omarchy's Limine + UKI + snapshots,
-# keeping Windows dual boot working, plus TPM disk unlock sealed to it.
+# keeping Windows dual boot working.
 #
 #   scripts/enable-secure-boot.sh prepare   keys, sealed+signed Limine, auto re-seal
 #   (reboot to firmware. ASUS: Security > Secure Boot > Secure Boot Control =
@@ -8,7 +8,7 @@
 #    Setup Mode doesn't enforce Secure Boot, so it still boots.)
 #   scripts/enable-secure-boot.sh enroll    enroll your keys + Microsoft's
 #   (plain reboot: Secure Boot Control is already on, now enforced)
-#   scripts/enable-secure-boot.sh finish    check, fresh signed snapshot, re-seal TPM
+#   scripts/enable-secure-boot.sh finish    check, fresh signed snapshot
 #
 # Recovery if it won't boot: turn Secure Boot off in the firmware and pick
 # "UEFI OS" (EFI/BOOT/BOOTX64.EFI, a stock unsealed Limine) from the firmware
@@ -59,8 +59,8 @@ case $step in
     sudo snapper -c root create -c number -d "secure boot on"
     sudo limine-snapper-sync
     sudo sbctl verify || true
-    # Secure Boot changed PCR 7: seal the TPM disk key again.
-    bash "$repo/scripts/enable-tpm-unlock.sh" --reseal "${2:-}"
+    # Optional, not used here (the disk password is the login):
+    # scripts/enable-tpm-unlock.sh --reseal  seals a TPM key to the new PCR 7.
     ;;
   *)
     sed -n 2,14p "$0"; exit 1 ;;
