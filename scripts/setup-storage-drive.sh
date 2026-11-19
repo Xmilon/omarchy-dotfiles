@@ -10,7 +10,10 @@
 #   sudo cryptsetup luksAddKey /dev/<disk>p1 --key-file /etc/cryptsetup-keys.d/storage.key
 # adds a password you can type instead.
 #
-# ext4 mounted at ~/Storage, with nofail: if the drive is missing, boot carries on.
+# ext4 mounted at ~/Storage, always: boot waits for it (projects live there), and
+# a missing drive stops boot at the emergency shell instead of running without it.
+# The empty folder underneath is made immutable, so nothing can land on the
+# main drive by mistake while Storage isn't mounted.
 set -euo pipefail
 dev=${1:?usage: $0 /dev/<disk>}
 [ -b "$dev" ] || { echo "$dev is not a disk" >&2; exit 1; }
@@ -40,10 +43,11 @@ sudo mkfs.ext4 -q -L Storage -m 0 /dev/mapper/storage
 
 uuid=$(sudo cryptsetup luksUUID "$part")
 sudo sed -i '/^storage /d' /etc/crypttab
-echo "storage UUID=$uuid $key luks,discard,nofail" | sudo tee -a /etc/crypttab >/dev/null
+echo "storage UUID=$uuid $key luks,discard" | sudo tee -a /etc/crypttab >/dev/null
 mkdir -p "$HOME/Storage"
+mountpoint -q "$HOME/Storage" || sudo chattr +i "$HOME/Storage"
 sudo sed -i '\|^/dev/mapper/storage |d' /etc/fstab
-echo "/dev/mapper/storage $HOME/Storage ext4 defaults,noatime,nofail,x-systemd.device-timeout=10s 0 2" |
+echo "/dev/mapper/storage $HOME/Storage ext4 defaults,noatime,x-systemd.device-timeout=10s 0 2" |
   sudo tee -a /etc/fstab >/dev/null
 sudo systemctl daemon-reload
 sudo mount "$HOME/Storage"

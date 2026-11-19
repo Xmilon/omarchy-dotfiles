@@ -222,4 +222,4 @@ These aren't automated:
   Install each with `appimage-integrator install <file>` or right-click → AppImage → Install.
 - **Artcraft**: install from its own launcher download (it isn't on Flathub).
 - **PeriHub** (mouse/keyboard settings, replaces G HUB etc.): not on the AUR yet. `git clone --branch aur --single-branch https://github.com/hex-dump/perihub.git perihub-aur && cd perihub-aur && makepkg -si`. Quit any vendor app first.
-- **Second drive (~/Storage)**: the old 1 TB Windows drive is now encrypted storage at `~/Storage`, unlocked at boot by a key file on the main drive (no extra password). `scripts/setup-storage-drive.sh /dev/<disk>` sets up a drive like that again; it erases it. The key file isn't in this repo.
+- **Second drive (~/Storage)**: the old 1 TB Windows drive is now encrypted storage at `~/Storage`, unlocked at boot by a key file on the main drive (no extra password). Always mounted: boot waits for it, and the empty folder under it is immutable so nothing lands on the main drive if it's ever missing. `scripts/setup-storage-drive.sh /dev/<disk>` sets up a drive like that again; it erases it. The key file isn't in this repo.
