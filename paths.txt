@@ -12,6 +12,7 @@
 .config/omarchy/plugins/xmilon.notes
 .config/omarchy/plugins/xmilon.sysinfo
 .config/omarchy/plugins/xmilon.indicators
+.config/omarchy/plugins/xmilon.notifcenter
 .config/omarchy/bar/modules
 .config/omarchy/hooks/theme-set.d/conflux-icons.sh
 .config/gtk-4.0/gtk.css
@@ -32,3 +33,4 @@
 .local/bin/xmilon-screensaver-guard
 .config/xmilon/idle-still
 .config/xmilon/session-splash
+.config/xmilon/notifications-muted.json

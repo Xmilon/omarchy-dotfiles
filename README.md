@@ -106,6 +106,17 @@ Open it with a left-click on the notes icon or **Super+Alt+N**.
 - **Links** are clickable: **Ctrl+click** a link or an image to open it.
 - Pages are plain Markdown files in `~/Notes/Quick/`.
 
+### Notification Center
+
+The bell at the far right of the bar. A number shows how many notifications came in since you last looked.
+
+- **Click** it for the list of the last 24 hours (newest first). Hover a card to **dismiss** it (󰅖) or **mute its app** (󰂛).
+- **Right-click** it, or press **On/Silenced** in the panel, for Do Not Disturb.
+- **Clear** empties the list. The mute button (󰂠) lists every app that sent something, with a switch each.
+- **Muted apps** don't pop up; their notifications still land in the list, marked *muted*. Codes and Omarchy's own prompts always get through. The list is `~/.config/xmilon/notifications-muted.json`.
+
+Muting needs a small patch to Omarchy's notification service (`omarchy-notif-mute-patch`), re-applied after updates by a pacman hook.
+
 ### Clipboard
 
 <img src="docs/screenshots/clipboard.png" width="626" alt="Clipboard tab with two items selected">

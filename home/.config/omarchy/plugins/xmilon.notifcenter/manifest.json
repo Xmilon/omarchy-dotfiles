@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "xmilon.notifcenter",
+  "name": "Notification Center",
+  "version": "1.0.0",
+  "author": "Xmilon",
+  "license": "MIT",
+  "description": "A bell in the bar with an unread count, opening a list of the day's notifications with Do Not Disturb and clear.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Notification Center",
+    "description": "Bell with unread count and a notification list",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

@@ -141,6 +141,10 @@ if ((ONLY_CONFIGS == 0)); then
   sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-bar-lock-patch" /usr/local/bin/omarchy-bar-lock-patch
   sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-bar-lock.hook" /etc/pacman.d/hooks/omarchy-bar-lock.hook
   sudo /usr/local/bin/omarchy-bar-lock-patch || warn "Bar background lock skipped (Omarchy's bar changed)"
+  # Per-app notification mute (read by the notification center).
+  sudo install -Dm755 "$REPO/system/usr/local/bin/omarchy-notif-mute-patch" /usr/local/bin/omarchy-notif-mute-patch
+  sudo install -Dm644 "$REPO/system/etc/pacman.d/hooks/omarchy-notif-mute.hook" /etc/pacman.d/hooks/omarchy-notif-mute.hook
+  sudo /usr/local/bin/omarchy-notif-mute-patch || warn "Per-app notification mute skipped (Omarchy's notifications changed)"
 
   say "Pamac: AUR enabled"
   [[ -f /etc/pamac.conf ]] && sudo sed -i -E 's/^#(EnableAUR|CheckAURUpdates)$/\1/' /etc/pamac.conf

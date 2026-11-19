@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Per-app notification mute for Omarchy's notification service.
+
+Apps listed in ~/.config/xmilon/notifications-muted.json ({"apps": ["discord"]},
+matched case-insensitively on the sender's app name) don't pop up. Like Do Not
+Disturb, their notifications still go to history, marked "muted", so the
+notification center (xmilon.notifcenter plugin) lists them. Verification codes
+and Omarchy's own action toasts always get through, as with Do Not Disturb.
+The list is watched, so changes apply at once.
+
+Idempotent; re-applied after Omarchy updates by a pacman hook. If upstream
+changed the hook points, the file is left alone. Undo: sudo pacman -S omarchy
+"""
+import sys
+from pathlib import Path
+
+PATH = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/omarchy/shell/plugins/notifications/Service.qml")
+MARK = "// xmilon-notif-mute-patch"
+
+OLD_CHECK = "    var muted = Delivery.quietReason(row, doNotDisturb)\n"
+NEW_CHECK = "    var muted = Delivery.quietReason(row, doNotDisturb) || service.xmilonMuteReason(row)\n"
+
+ANCHOR = "  FileView {\n    id: liveFile\n"
+BLOCK = "  " + MARK + """: apps muted from the notification center
+  property var xmilonMutedApps: []
+  function xmilonMuteReason(row) {
+    if (Delivery.bypassesQuiet(row) || String((row && row.code) || "")) return ""
+    var app = String((row && row.app) || "").toLowerCase()
+    return app && xmilonMutedApps.indexOf(app) >= 0 ? "muted" : ""
+  }
+  FileView {
+    path: Quickshell.env("HOME") + "/.config/xmilon/notifications-muted.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      var apps = []
+      try {
+        var a = JSON.parse(text()).apps
+        if (Array.isArray(a)) apps = a.slice(0, 500).map(function(x) { return String(x).toLowerCase() })
+      } catch (e) {}
+      service.xmilonMutedApps = apps
+    }
+    onLoadFailed: service.xmilonMutedApps = []
+  }
+
+"""
+
+text = PATH.read_text()
+if MARK in text:
+    print("Notification per-app mute: already applied")
+    sys.exit(0)
+if text.count(OLD_CHECK) != 1 or text.count(ANCHOR) != 1:
+    print("Notification per-app mute: upstream changed; skipped")
+    sys.exit(1)
+text = text.replace(OLD_CHECK, NEW_CHECK).replace(ANCHOR, BLOCK + ANCHOR)
+PATH.write_text(text)
+print("Notification per-app mute: applied")
