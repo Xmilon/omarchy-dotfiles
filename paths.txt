@@ -34,3 +34,4 @@
 .config/xmilon/idle-still
 .config/xmilon/session-splash
 .config/xmilon/notifications-muted.json
+.local/share/applications/PeriHub.desktop

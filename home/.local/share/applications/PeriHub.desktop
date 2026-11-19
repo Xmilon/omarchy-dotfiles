@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=Utility;
+Comment=Configure gaming peripherals without SteelSeries GG or Logitech G HUB
+Exec=env WEBKIT_DISABLE_DMABUF_RENDERER=1 perihub
+StartupWMClass=perihub
+Icon=perihub
+Name=PeriHub
+Terminal=false
+Type=Application
