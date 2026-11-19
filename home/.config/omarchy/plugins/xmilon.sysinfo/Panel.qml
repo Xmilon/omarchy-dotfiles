@@ -191,6 +191,16 @@ Panel {
           fraction: root.pct(root.info.diskUsed || 0, root.info.diskTotal || 0)
         }
 
+        // Second drive (~/Storage), only while it's mounted.
+        StatBlock {
+          visible: !!root.info.storageTotal
+          icon: "󰋊"
+          title: "Storage"
+          subtitle: ""
+          value: root.info.storageTotal ? root.gib(root.info.storageUsed) + " / " + root.gib(root.info.storageTotal) : "…"
+          fraction: root.pct(root.info.storageUsed || 0, root.info.storageTotal || 0)
+        }
+
         Rectangle {
           Layout.fillWidth: true
           height: 1

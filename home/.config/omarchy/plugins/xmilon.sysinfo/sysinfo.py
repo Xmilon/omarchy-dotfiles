@@ -87,6 +87,9 @@ def stream(interval):
         cpu = round(100 * (dt - di) / dt) if dt > 0 else 0
         mem_total, mem_used, swap_total, swap_used = meminfo()
         disk = shutil.disk_usage("/")
+        # Second drive (~/Storage), only while it's mounted.
+        storage = os.path.expanduser("~/Storage")
+        store = shutil.disk_usage(storage) if os.path.ismount(storage) else None
         with open("/proc/uptime") as fh:
             uptime = int(float(fh.read().split()[0]))
         load = os.getloadavg()
@@ -101,6 +104,8 @@ def stream(interval):
             "swapTotal": swap_total,
             "diskUsed": disk.used,
             "diskTotal": disk.total,
+            "storageUsed": store.used if store else None,
+            "storageTotal": store.total if store else None,
             "uptime": uptime,
             "load": [round(x, 2) for x in load],
         }), flush=True)
