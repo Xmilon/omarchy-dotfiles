@@ -210,4 +210,4 @@ These aren't automated:
 - **AppImages** in `~/Applications`: Liner (from github.com/tryliner/desktop), spotifast and Sunrise Launcher.
   Install each with `appimage-integrator install <file>` or right-click → AppImage → Install.
 - **Artcraft**: install from its own launcher download (it isn't on Flathub).
-- **Windows drive / migration data**: not part of this repo.
+- **Second drive (~/Storage)**: the old 1 TB Windows drive is now encrypted storage at `~/Storage`, unlocked at boot by a key file on the main drive (no extra password). `scripts/setup-storage-drive.sh /dev/<disk>` sets up a drive like that again; it erases it. The key file isn't in this repo.
