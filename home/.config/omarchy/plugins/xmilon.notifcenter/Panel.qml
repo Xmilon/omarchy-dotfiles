@@ -119,6 +119,15 @@ Panel {
     Quickshell.execDetached(["omarchy-shell", "notifications", "dismissAll"])
   }
 
+  // A click on a card brings up what sent it (open.sh explains the order),
+  // then closes the list so the window is in view.
+  function activate(entry) {
+    if (!entry) return
+    Quickshell.execDetached([Qt.resolvedUrl("open.sh").toString().replace("file://", ""),
+                             String(entry.app || ""), String(entry.senderPid || 0), String(entry.execArgv || "")])
+    root.close()
+  }
+
   function dismiss(key) {
     hidden = hidden.concat([key])
     saveState()
@@ -448,6 +457,14 @@ Panel {
     Behavior on color { ColorAnimation { duration: Style.duration(120) } }
 
     HoverHandler { id: hover }
+
+    // Click anywhere on the card (except its mute and dismiss buttons, which
+    // sit above this) to open what sent it.
+    MouseArea {
+      anchors.fill: parent
+      cursorShape: Qt.PointingHandCursor
+      onClicked: root.activate(card.entry)
+    }
 
     RowLayout {
       id: row

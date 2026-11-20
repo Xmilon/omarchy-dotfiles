@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "xmilon.hchat",
+  "name": "hchat",
+  "version": "1.0.0",
+  "author": "Xmilon",
+  "license": "MIT",
+  "description": "Unread hchat DMs and mentions for the website, game and main agents, from hchat-relay's local inbox. Read-only; no server connections.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "hchat",
+    "description": "Unread hchat messages per agent and relay health",
+    "category": "Communication",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
