@@ -120,14 +120,15 @@ BarWidget {
     root.wheelAccumulator = wheel.remainder
     if (wheel.steps === 0) return
 
-    // Wraps around at either end (last -> first, first -> last), the same as
-    // Super + scroll does.
-    var ids = root.workspaceIds()
-    var index = ids.indexOf(root.activeWorkspaceId())
-    if (index === -1) return
-    var n = ids.length
-    var target = ids[(((index - wheel.steps) % n) + n) % n]
-    if (target !== ids[index]) root.focusWorkspace(target)
+    // Does exactly what Super + scroll does (see default/hypr/bindings/tiling.lua):
+    // m+1 / m-1 on this bar's monitor, which Hyprland wraps around from the
+    // last workspace to the first and back.
+    var direction = wheel.steps < 0 ? "m+1" : "m-1"
+    var count = Math.abs(wheel.steps)
+    var command = "hyprctl dispatch " + Util.shellQuote("hl.dsp.focus({ monitor = \"" + root.monitorName + "\" })")
+    for (var i = 0; i < count; i++)
+      command += " && hyprctl dispatch " + Util.shellQuote("hl.dsp.focus({ workspace = \"" + direction + "\" })")
+    if (root.bar) root.bar.run(command + " >/dev/null")
   }
 
   // The workspace each monitor shows carries its layout: a square tiles, a
