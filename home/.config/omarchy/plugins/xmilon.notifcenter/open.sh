@@ -29,12 +29,11 @@ fi
 # 2. Apps without a window of their own.
 case "${app,,}" in
   hchat)
-    # The hchat app if it's installed (focus it if open), else the bar's hchat panel.
+    # The hchat app: focus it if open, else start it.
     if command -v hchat-app >/dev/null; then
       omarchy-hyprland-focus-app hchat-app || setsid -f uwsm-app -- hchat-app.desktop >/dev/null 2>&1
       exit 0
     fi
-    omarchy-shell xmilon.hchat open >/dev/null 2>&1 && exit 0
     ;;
 esac
 

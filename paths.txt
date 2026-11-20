@@ -35,4 +35,3 @@
 .config/xmilon/session-splash
 .config/xmilon/notifications-muted.json
 .local/share/applications/PeriHub.desktop
-.config/omarchy/plugins/xmilon.hchat
