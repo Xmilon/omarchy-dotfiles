@@ -10,14 +10,15 @@ import qs.Commons as Commons
 // the website, game and main agents, and a popup with the newest messages per
 // agent and whether hchat-relay is alive.
 //
-// Read-only and local: hchat_bar.py reads what hchat-relay already wrote to
+// The widget itself is read-only and local: hchat_bar.py reads what hchat-relay already wrote to
 // ~/.hchat/inbox/ and never connects to the hchat server (too many connections
 // get the address suspended for an hour). Agents answer for themselves, so
 // there is no send button. Its read position is its own ("bar"); the agents'
 // read positions are never touched. Closing the popup marks what it showed as
 // read for the bar.
 //
-// Click a message to copy its id (for `hchat get ID`).
+// Click a message to copy its id (for `hchat get ID`). "Open app" opens
+// hchat-app (~/Work/hchat-app), the full chat window where you can write.
 Panel {
   id: root
   moduleName: "xmilon.hchat"
@@ -192,6 +193,32 @@ Panel {
           Rectangle {
             width: Style.space(7); height: width; radius: width / 2
             color: root.relayAlive ? "#5fb36b" : root.hot
+          }
+          // Opens the hchat app, where you can read channels and write.
+          Rectangle {
+            radius: Style.space(6)
+            color: openHit.containsMouse ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.3) : Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
+            implicitWidth: openLabel.implicitWidth + Style.space(14)
+            implicitHeight: openLabel.implicitHeight + Style.space(6)
+            Text {
+              id: openLabel
+              anchors.centerIn: parent
+              textFormat: Text.PlainText
+              text: "Open app"
+              color: root.accent
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+            MouseArea {
+              id: openHit
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                Quickshell.execDetached(["sh", "-c", "omarchy-hyprland-focus-app hchat-app || exec uwsm-app -- hchat-app.desktop"])
+                root.close()
+              }
+            }
           }
           Text {
             textFormat: Text.PlainText

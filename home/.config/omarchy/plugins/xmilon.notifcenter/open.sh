@@ -3,7 +3,7 @@
 # card is clicked. The notification itself is usually gone by then (its app's
 # own "click" action dies with it), so this tries, in order:
 #   1. the command Omarchy stored with it (screenshots: open the image),
-#   2. a handler for apps that have no window (hchat: open the hchat panel),
+#   2. a handler for apps that have no window (hchat: open hchat-app),
 #   3. the window of the process that sent it,
 #   4. any window of that app,
 #   5. launching the app.
@@ -29,6 +29,11 @@ fi
 # 2. Apps without a window of their own.
 case "${app,,}" in
   hchat)
+    # The hchat app if it's installed (focus it if open), else the bar's hchat panel.
+    if command -v hchat-app >/dev/null; then
+      omarchy-hyprland-focus-app hchat-app || setsid -f uwsm-app -- hchat-app.desktop >/dev/null 2>&1
+      exit 0
+    fi
     omarchy-shell xmilon.hchat open >/dev/null 2>&1 && exit 0
     ;;
 esac
