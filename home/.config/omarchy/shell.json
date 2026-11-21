@@ -1,6 +1,6 @@
 {
   "bar": {
-    "background": "none",
+    "background": "opaque",
     "layout": {
       "center": [
         {
@@ -24,7 +24,7 @@
           "format": "dddd HH:mm",
           "formatAlt": "d MMMM 'W'ww yyyy",
           "id": "omarchy.clock",
-          "verticalFormat": "HH\n—\nmm"
+          "verticalFormat": "HH\n\u2014\nmm"
         },
         {
           "id": "divider3",
@@ -82,11 +82,13 @@
         {
           "id": "islands",
           "source": "~/.config/omarchy/bar/modules/islands.qml",
-          "type": "qml"
+          "type": "qml",
+          "inset": 1,
+          "pad": 6
         },
         {
           "id": "divider0",
-          "size": 8,
+          "size": 7,
           "source": "~/.config/omarchy/bar/modules/divider.qml",
           "type": "qml"
         },
@@ -108,9 +110,6 @@
         },
         {
           "id": "omarchy.tray"
-        },
-        {
-          "id": "io.github.fasi96.liquid-glass"
         },
         {
           "id": "omarchy.keyboard-layout"
@@ -138,7 +137,7 @@
         },
         {
           "id": "divider7",
-          "size": 8,
+          "size": 6,
           "source": "~/.config/omarchy/bar/modules/divider.qml",
           "type": "qml"
         }
@@ -155,7 +154,8 @@
     "xmilon.media"
   ],
   "disabledPlugins": [
-    "omarchy.media"
+    "omarchy.media",
+    "io.github.fasi96.liquid-glass"
   ],
   "dock": {
     "pinned": [

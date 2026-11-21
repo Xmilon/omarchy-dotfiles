@@ -1,0 +1,4 @@
+[bar]
+# The islands draw the backgrounds and the bar itself stays see-through, so
+# the text keeps the theme color and stays readable on any wallpaper.
+background-alpha = 0.0

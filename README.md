@@ -22,7 +22,7 @@ From left to right:
 
 Thin dividers separate the groups, and the middle group is centred on the screen.
 
-The bar is **clear** (`"background": "none"` in `shell.json`). Omarchy cycles clear / glassy / opaque when you double-click an empty spot on the bar; `omarchy-bar-lock-patch` turns that off (a pacman hook re-applies it after updates), so it only changes from the menu (Style → Top Bar). Undo: `sudo pacman -S omarchy`.
+The bar is **see-through**: `"background": "opaque"` in `shell.json` with `background-alpha = 0.0` in `shell.toml`, so the islands draw the backgrounds and the text keeps the theme color, readable on any wallpaper. The outer islands line up with the window edges. Omarchy cycles clear / glassy / opaque when you double-click an empty spot on the bar; `omarchy-bar-lock-patch` turns that off (a pacman hook re-applies it after updates), so it only changes from the menu (Style → Top Bar). Undo: `sudo pacman -S omarchy`.
 
 ### Music widget
 
